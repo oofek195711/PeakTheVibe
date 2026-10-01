@@ -46,22 +46,43 @@ function songFromItunes(x) {
     source: 'apple'
   };
 }
+const searchCache = new Map();
+let searchTimer = null;
+/* Called on every keystroke: waits until typing pauses, then searches. */
+function liveSearch(key) {
+  clearTimeout(searchTimer);
+  const q = ((D[key] && D[key].q) || '').trim();
+  if (q.length < 2) { delete searchState[key]; updateSearchResults(key); return }
+  searchTimer = setTimeout(() => runSongSearch(key), 450);
+}
 async function runSongSearch(key) {
+  clearTimeout(searchTimer);
   const d = D[key]; if (!d) return;
   const q = (d.q || '').trim();
-  if (q.length < 2) { toast('כתבו לפחות 2 אותיות'); return }
-  searchState[key] = { q, loading: true, results: [], error: '' };
-  render();
+  if (q.length < 2) { delete searchState[key]; updateSearchResults(key); return }
+  const cached = searchCache.get(q.toLowerCase());
+  if (cached) { searchState[key] = { q, loading: false, results: cached, error: cached.length ? '' : 'לא נמצאו תוצאות. נסו לנסח אחרת, או הוסיפו את השיר ידנית.' }; updateSearchResults(key); return }
+  const prev = searchState[key];
+  searchState[key] = { q, loading: true, results: prev ? prev.results : [], error: '' };
+  updateSearchResults(key);
   try {
     const res = await itunesSearch(q);
     const seen = new Set(), list = [];
     res.forEach(x => { const s = songFromItunes(x); const id = s.trackId || s.title + s.artist; if (s.title && !seen.has(id)) { seen.add(id); list.push(s) } });
-    if (!searchState[key] || searchState[key].q !== q) return;
-    searchState[key] = { q, loading: false, results: list.slice(0, 10), error: list.length ? '' : 'לא נמצאו תוצאות. נסו לנסח אחרת, או הוסיפו את השיר ידנית.' };
+    const top = list.slice(0, 10);
+    searchCache.set(q.toLowerCase(), top);
+    if (!searchState[key] || searchState[key].q !== q) return; // a newer search is already running
+    searchState[key] = { q, loading: false, results: top, error: top.length ? '' : 'לא נמצאו תוצאות. נסו לנסח אחרת, או הוסיפו את השיר ידנית.' };
   } catch (e) {
+    if (!searchState[key] || searchState[key].q !== q) return;
     searchState[key] = { q, loading: false, results: [], error: 'החיפוש לא הצליח. בדקו חיבור לאינטרנט, או הוסיפו את השיר ידנית.' };
   }
-  render();
+  updateSearchResults(key);
+}
+/* Updates only the results box, so the search field keeps focus and the keyboard stays open. */
+function updateSearchResults(key) {
+  const box = app.querySelector('[data-sr="' + key + '"]');
+  if (box) box.innerHTML = searchResultsHtml(key); else render();
 }
 
 /* ---------- 30-second previews ---------- */

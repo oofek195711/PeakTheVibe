@@ -7,7 +7,7 @@ function onField(e) {
   if (k.startsWith('pk:') && (fld === 'title' || fld === 'artist') && o.trackId) { o.trackId = ''; o.artwork = ''; o.previewUrl = ''; o.album = ''; o.source = 'manual' }
   o[fld] = e.target.type === 'checkbox' ? e.target.checked : e.target.tagName === 'SELECT' ? +e.target.value : e.target.value;
 }
-app.addEventListener('input', onField);
+app.addEventListener('input', e => { onField(e); const k = e.target.dataset && e.target.dataset.search; if (k) liveSearch(k) });
 app.addEventListener('change', onField);
 const maxOrder = () => S.topics.reduce((m, t) => Math.max(m, t.order || 0), 0);
 const topicOf = k => ({ text: (D[k].t || '').trim().slice(0, 90), metric2: (D[k].m || '').trim().slice(0, 50) || DEFAULT_M.m, funny: !!D[k].f, lang: LANGS[D[k].lang] ? D[k].lang : 'any' });
@@ -115,7 +115,7 @@ app.addEventListener('click', async e => {
   else if (a === 'pickres') {
     const k = b.dataset.k, st = searchState[k], x = st && st.results[+b.dataset.i]; if (!x || !D[k]) return;
     Object.assign(D[k], { title: x.title, artist: x.artist, url: x.url, artwork: x.artwork, previewUrl: x.previewUrl, trackId: x.trackId, album: x.album, source: x.source });
-    delete searchState[k]; render(); toast('נבחר: ' + x.title + '. עכשיו שומרים או נועלים.');
+    delete searchState[k]; D[k].q = ''; if (document.activeElement) document.activeElement.blur(); render(); toast('נבחר: ' + x.title + '. עכשיו שומרים או נועלים.');
   }
   else if (a === 'preview') { togglePreview(v) }
   else if (a === 'replay') { const r = S.rounds.find(x => x.id === view.v); if (r) startReveal(r) }

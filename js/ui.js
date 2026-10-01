@@ -175,18 +175,20 @@ function songCard(p, o) {
     <div class="shead">${artHtml(p)}<div class="sinfo"><div class="t">${esc(p.title)}</div><div class="a">${esc(p.artist || '')}</div>${o.tag ? `<div class="stag">${o.tag}</div>` : ''}</div>${o.noPlay ? '' : playBtn(p)}</div>
     ${o.links === false ? '' : openLinks(p)}${o.body || ''}</div>`;
 }
-function pickFormHtml(r, mine, k, d) {
+function searchResultsHtml(k) {
   const st = searchState[k] || {};
+  const spin = st.loading ? `<p class="sstatus">מחפש…</p>` : '';
+  if (st.error) return `<p class="sstatus">${esc(st.error)}</p>`;
+  if (!st.results || !st.results.length) return spin;
+  return spin + `<div class="sresults ${st.loading ? 'dim' : ''}">${st.results.map((x, i) => `<button class="sres" data-act="pickres" data-k="${esc(k)}" data-i="${i}">${artHtml(x, 'sm')}<span class="sinfo"><span class="t">${esc(x.title)}</span><span class="a">${esc(x.artist)}${x.album ? ' · ' + esc(x.album) : ''}</span></span><span class="src">Apple Music</span></button>`).join('')}</div>`;
+}
+function pickFormHtml(r, mine, k, d) {
   const langHint = langOf(r) !== 'any' ? `<p class="hint" style="margin:0 0 10px;color:var(--ink)">${LANGS[langOf(r)].ic} זכרו: ${langOf(r) === 'he' ? 'שיר בעברית' : 'שיר באנגלית'} בלבד בסבב הזה.</p>` : '';
   const chosen = d.title ? `<div class="chosen"><small>${mine ? 'טיוטה שמורה' : 'השיר שבחרת (עוד לא נשמר)'}</small>${songCard(d, { compact: true, links: false })}${mine ? '<p class="hint" style="margin:6px 0 0">אפשר לשנות עד שנועלים. טיוטה שלא ננעלה נספרת בסוף הזמן.</p>' : ''}</div>` : '';
-  let results = '';
-  if (st.loading) results = `<p class="muted" style="margin:8px 0">מחפש…</p>`;
-  else if (st.error) results = `<p class="hint" style="margin:8px 0">${esc(st.error)}</p>`;
-  else if (st.results && st.results.length) results = `<div class="sresults">${st.results.map((x, i) => `<button class="sres" data-act="pickres" data-k="${esc(k)}" data-i="${i}">${artHtml(x, 'sm')}<span class="sinfo"><span class="t">${esc(x.title)}</span><span class="a">${esc(x.artist)}${x.album ? ' · ' + esc(x.album) : ''}</span></span><span class="src">Apple Music</span></button>`).join('')}</div>`;
   return `<div class="panel">${langHint}${chosen}
     <label class="f" for="sq">חיפוש שיר</label>
-    <div class="sbar"><input id="sq" class="field" data-f="${k}.q" data-search="${esc(k)}" enterkeyhint="search" value="${esc(d.q || '')}" placeholder="למשל: Creep Radiohead"><button class="btn" data-act="search" data-k="${esc(k)}" aria-label="חפש">חפש</button></div>
-    ${results}
+    <div class="sbar"><span class="sicon" aria-hidden="true">🔍</span><input id="sq" class="field" data-f="${k}.q" data-search="${esc(k)}" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(d.q || '')}" placeholder="התחילו להקליד שם של שיר או אמן"></div>
+    <div data-sr="${esc(k)}">${searchResultsHtml(k)}</div>
     <details data-k="manual-${esc(r.id)}" class="manual"><summary>לא מצאתם? הוספה ידנית</summary>
       <label class="f" for="pt" style="margin-top:12px">שם השיר</label><input id="pt" class="field" data-f="${k}.title" maxlength="80" value="${esc(d.title)}">
       <label class="f" for="pa">אמן</label><input id="pa" class="field" data-f="${k}.artist" maxlength="60" value="${esc(d.artist)}">
