@@ -267,3 +267,13 @@ body.rv-open{overflow:hidden}
 @keyframes fall{to{transform:translateY(112vh) rotate(720deg)}}
 @media (prefers-reduced-motion:reduce){.rv-card,.rv-card.win{animation:none}.confetti{display:none}}
 [hidden]{display:none !important}
+/* identity */
+.restorebox{margin-top:12px}
+.restorebox .linkbtn{display:block;margin:10px auto 0;font-size:14px;color:var(--muted)}
+button.qrow.pickme{width:100%;border:0;text-align:right;cursor:pointer}
+.idok,.idwarn{margin-bottom:10px}
+.idok small,.idwarn small{display:block;color:var(--muted);font-size:13px;margin-top:4px}
+.idwarn{box-shadow:inset 0 0 0 2px var(--warn)}
+/* guard: nothing may push the page sideways (e.g. while web fonts are still loading) */
+#app{overflow-x:clip}
+.display{overflow-wrap:anywhere}

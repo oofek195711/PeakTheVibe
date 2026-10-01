@@ -43,7 +43,7 @@ const SUGGEST = [
   { t: 'שיר שאפשר לשים בלופ שעה בלי להשתגע', m: 'כמה זה מקפיץ', f: false }
 ];
 let db = null, me = null, ready = false, fatal = null;
-const S = { rounds: [], picks: [], ratings: [], players: {}, topics: [], admin: null,
+const S = { rounds: [], picks: [], ratings: [], players: {}, topics: [], links: [], admin: null,
   settings: { startHour: 10, pickHours: 24, rateHours: 24, inactive: [] }, loaded: {} };
 let view = { name: 'home', v: null };
 let boardMode = 'week';

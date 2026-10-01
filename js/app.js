@@ -92,6 +92,25 @@ app.addEventListener('click', async e => {
     if (lock && !confirm('לנעול את "' + title + '"? אחרי הנעילה אי אפשר לשנות.')) return;
     await write(() => db.doc('picks/' + r.id + '__' + me).set({ rid: r.id, uid: me, title: title.slice(0, 80), artist: (d.artist || '').trim().slice(0, 60), url, artwork: safeUrl(d.artwork || ''), previewUrl: safeUrl(d.previewUrl || ''), trackId: String(d.trackId || ''), album: String(d.album || '').slice(0, 80), source: d.trackId ? (d.source || 'apple') : 'manual', locked: lock, at: now(), ...(lock ? { lockedAt: now() } : {}) }), lock ? 'הבחירה ננעלה 🔒' : 'הטיוטה נשמרה');
   }
+  else if (a === 'glogin') { googleSignIn() }
+  else if (a === 'gbackup') { googleBackup() }
+  else if (a === 'reqrestore') {
+    const p = S.players[v]; if (!p) return;
+    if (!confirm('לשחזר את החשבון של ' + p.nick + (p.fullName ? ' (' + p.fullName + ')' : '') + '?\n\nהמנהל יקבל בקשה ויאשר.')) return;
+    await write(() => db.doc('links/' + authUid).set({ target: v, status: 'pending', at: now() }), 'הבקשה נשלחה למנהל');
+  }
+  else if (a === 'cancelrestore') { await write(() => db.doc('links/' + authUid).delete(), 'הבקשה בוטלה') }
+  else if (a === 'approvelink') {
+    const l = (S.links || []).find(x => x.id === v); if (!l) return;
+    const p = S.players[l.target] || {};
+    if (!confirm('לאשר שהמכשיר החדש הוא ' + (p.nick || '?') + '?\n\nהמכשיר יקבל את כל ההיסטוריה ויוכל לשחק בשמו/ה.')) return;
+    const F = firebase.firestore.FieldValue;
+    await write(async () => {
+      await db.doc('links/' + v).update({ status: 'approved', approvedAt: now(), approvedBy: me });
+      if (S.players[v]) await db.doc('config/settings').set({ inactive: F.arrayUnion(v) }, { merge: true });
+    }, 'אושר. החשבון נפתח אצלו/ה');
+  }
+  else if (a === 'rejectlink') { if (confirm('לדחות / לבטל את השחזור הזה?')) await write(() => db.doc('links/' + v).delete(), 'בוטל') }
   else if (a === 'search') { if (document.activeElement) document.activeElement.blur(); runSongSearch(b.dataset.k) }
   else if (a === 'pickres') {
     const k = b.dataset.k, st = searchState[k], x = st && st.results[+b.dataset.i]; if (!x || !D[k]) return;

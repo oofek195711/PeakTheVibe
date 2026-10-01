@@ -77,8 +77,10 @@ function render() {
   pending = false;
   if (fatal) { app.innerHTML = `<div class="empty">${LOGO('big')}<div class="display" style="margin-top:14px">PeakTheVibe</div><p class="muted">${esc(fatal)}</p></div>`; return }
   const L = S.loaded;
-  if (!ready || !L.players || !L.rounds || !L.topics || !L.admin || !L.settings) { app.innerHTML = '<p class="muted" style="padding-top:40px;text-align:center">טוען…</p>'; return }
-  if (!S.players[me] || !S.players[me].fullName) { app.innerHTML = nickView(); return }
+  if (!ready || !L.players || !L.rounds || !L.topics || !L.admin || !L.settings || !L.link) { app.innerHTML = '<p class="muted" style="padding-top:40px;text-align:center">טוען…</p>'; return }
+  if (myLink && myLink.status === 'pending') { app.innerHTML = waitView(); return }
+  if (!S.players[me]) { app.innerHTML = view.name === 'restore' ? restoreView() : nickView(); return }
+  if (!S.players[me].fullName) { app.innerHTML = nickView(); return }
   let body = '', rateBar = false;
   const v = view.name;
   if (v === 'round') { const r = S.rounds.find(x => x.id === view.v); if (r) { body = roundView(r); rateBar = body.includes('class="savebar"') } else body = homeView() }
@@ -113,7 +115,7 @@ function helpView() {
   ${item('🕵️', 'מנחשים מי בחר', 'ליד כל שיר בוחרים מי לדעתכם בחר אותו. כל ניחוש נכון שווה נקודת בונוס.')}
   ${item('🏆', 'ניקוד ותארים', 'כל שיר מקבל את הממוצע של שני המדדים מכל המדרגים, עד 10 נקודות, ועוד בונוסים מניחושים. יש טבלה שבועית (מיום ראשון), טבלה של כל הזמנים, תארים מצחיקים ופרופיל לכל שחקן.')}
   ${item('💡', 'יש לכם רעיון לנושא?', 'כפתור "הצע נושא" בתחתית המסך. אם המנהל יאשר, הוא יעלה באחד הימים, בלי שאף אחד יידע שזה שלכם.')}
-  ${item('📱', 'טיפ חשוב', 'הוסיפו את המשחק למסך הבית ופתחו אותו תמיד משם. המשחק מזהה אתכם לפי הדפדפן, אז מחיקת היסטוריה או מעבר לדפדפן אחר ייצרו אתכם מחדש כשחקן חדש.')}
+  ${item('📱', 'טיפ חשוב', 'הוסיפו את המשחק למסך הבית ופתחו אותו תמיד משם, כי המשחק מזהה אתכם לפי הדפדפן. החלפתם טלפון או מחקתם היסטוריה? במסך הכניסה בחרו "שחזר את החשבון שלי", המנהל יאשר, וכל הניקוד חוזר.')}
   <button class="btn block" style="margin-top:18px" data-act="helpdone">הבנתי, יאללה</button>`;
 }
 function nickView() {
@@ -123,14 +125,17 @@ function nickView() {
   <div class="panel"><p style="margin-top:0">היי ${esc(ex.nick)}, הוספנו שדה של שם מלא. הוא יוצג בקטן רק בפרופיל שלך.</p>
   <label class="f" for="full">שם מלא</label><input id="full" class="field" data-f="nick.full" maxlength="40" value="${esc(d.full)}" placeholder="שם פרטי ושם משפחה">
   <button class="btn block" data-act="savefull">שמור</button></div>${FOOT}`;
-  return `<div style="padding-top:24px;text-align:center">${LOGO('big')}<div class="display" style="font-size:64px;margin:14px 0 10px">PeakTheVibe</div></div><div>
+  return `<div style="padding-top:24px;text-align:center">${LOGO('big')}<div class="display" style="font-size:min(64px,16vw);margin:14px 0 10px">PeakTheVibe</div></div><div>
   <p>כל יום נושא חדש. בוחרים שיר שמתאים, מדרגים את השירים של כולם, מנחשים מי בחר מה, ומי שבחר הכי טוב לוקח.</p>
   <div class="panel" style="margin-top:22px"><label class="f" for="nick">איך יקראו לך במשחק?</label>
   <input id="nick" class="field" data-f="nick.v" maxlength="24" value="${esc(d.v)}" placeholder="למשל: נגה">
   <p class="hint">הכינוי מוצג לכל המשתתפים במשחק.</p>
   <label class="f" for="full">שם מלא</label><input id="full" class="field" data-f="nick.full" maxlength="40" value="${esc(d.full)}" placeholder="שם פרטי ושם משפחה">
   <p class="hint">מוצג בקטן רק בפרופיל שלך.</p>
-  <button class="btn block" data-act="savenick">יאללה, נכנסים</button></div></div>${FOOT}`;
+  <button class="btn block" data-act="savenick">יאללה, נכנסים</button></div>
+  <div class="panel restorebox"><b>כבר שיחקת במכשיר אחר?</b><p class="hint" style="margin:4px 0 10px">בחרו את השם שלכם, המנהל יאשר, וכל ההיסטוריה חוזרת.</p>
+  <button class="btn ghost block" data-act="go" data-v="restore">שחזר את החשבון שלי</button>
+  <button class="linkbtn" style="margin-top:10px" data-act="glogin">מנהל? התחברות עם Google</button></div></div>${FOOT}`;
 }
 function langPicker(key) {
   const cur = (D[key] && D[key].lang) || 'any';
@@ -188,6 +193,34 @@ function pickFormHtml(r, mine, k, d) {
       <label class="f" for="pu">לינק (לא חובה)</label><input id="pu" class="field" data-f="${k}.url" inputmode="url" dir="ltr" value="${esc(d.url)}" placeholder="Spotify / Apple Music / YouTube">
     </details>
     <div class="row-actions"><button class="btn ghost" style="flex:1" data-act="savepick" ${busy ? 'disabled' : ''}>שמור טיוטה</button><button class="btn" style="flex:1" data-act="lockpick" ${busy ? 'disabled' : ''}>נעל בחירה 🔒</button></div></div>`;
+}
+function restoreView() {
+  const list = Object.entries(S.players).filter(([u]) => u !== S.admin && u !== authUid).sort((a, b) => (a[1].nick || '').localeCompare(b[1].nick || '', 'he'));
+  return `<button class="back" data-act="go" data-v="home">→ חזרה</button>
+  <div class="display" style="font-size:48px;margin:4px 0 6px">שחזור חשבון</div>
+  <p class="hint" style="margin:0 0 14px">בחרו את השם שלכם. המנהל יקבל בקשה, וברגע שיאשר, החשבון ייפתח כאן עם כל ההיסטוריה.</p>
+  ${list.length ? list.map(([u, p]) => `<button class="qrow pickme" data-act="reqrestore" data-v="${esc(u)}"><span class="qt">${esc(p.nick)}<small>${esc(p.fullName || '')}</small></span><span class="muted">בחר ←</span></button>`).join('') : '<p class="muted">עוד אין שחקנים לשחזר.</p>'}
+  <p class="hint" style="margin-top:14px">המנהל משחזר את עצמו עם Google, לכן הוא לא ברשימה.</p>${FOOT}`;
+}
+function waitView() {
+  const p = S.players[myLink.target] || {};
+  return `<div style="padding-top:24px;text-align:center">${LOGO('big')}<div class="display" style="font-size:52px;margin:14px 0 6px">⏳ מחכים למנהל</div></div>
+  <div class="panel"><p style="margin-top:0">ביקשת לשחזר את החשבון של <b>${esc(p.nick || 'שחקן')}</b>.</p>
+  <p class="hint" style="margin:0 0 14px">המנהל צריך לאשר שזה באמת את/ה. אפשר לשלוח לו הודעה. ברגע שיאשר, החשבון ייפתח כאן לבד.</p>
+  <button class="btn ghost block" data-act="cancelrestore">ביטול הבקשה</button></div>${FOOT}`;
+}
+function identityAdminHtml() {
+  const pend = (S.links || []).filter(l => l.status === 'pending').sort((a, b) => (a.at || 0) - (b.at || 0));
+  const appr = (S.links || []).filter(l => l.status === 'approved');
+  let h = authGoogle
+    ? `<div class="panel idok">🔐 <b>החשבון שלך מגובה עם Google</b><small>${esc(authGoogle.email || '')}. אפשר להתחבר מכל מכשיר: "מנהל? התחברות עם Google" במסך הכניסה.</small></div>`
+    : `<div class="panel idwarn"><b>⚠️ החשבון שלך לא מגובה</b><small>אם תחליף מכשיר או תמחק היסטוריה, תאבד את הניהול ואת הניקוד. גיבוי עם Google מאפשר גם להתחבר מהמחשב ומהטלפון יחד.</small><button class="btn block" style="margin-top:10px" data-act="gbackup">🔐 גבה עם Google</button></div>`;
+  if (pend.length) h += `<h2>📲 בקשות שחזור (${pend.length})</h2>` + pend.map(l => { const p = S.players[l.target] || {};
+    return `<div class="panel" style="margin-bottom:10px"><b>מכשיר חדש מבקש להיות ${esc(p.nick || '?')}</b><small class="muted" style="display:block">${esc(p.fullName || '')}${l.at ? ', ' + new Date(l.at).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</small>
+    <p class="hint" style="margin:6px 0 0">לא בטוח? תשאל אותו/ה בוואטסאפ לפני שמאשרים.</p>
+    <div class="row-actions"><button class="btn" style="flex:1" data-act="approvelink" data-v="${esc(l.id)}">אשר</button><button class="btn ghost" style="flex:1" data-act="rejectlink" data-v="${esc(l.id)}">דחה</button></div></div>` }).join('');
+  if (appr.length) h += `<details data-k="links-ok" class="panel" style="margin-top:10px"><summary><b>מכשירים ששוחזרו (${appr.length})</b></summary><div style="margin-top:8px">${appr.map(l => `<div class="qrow" style="background:var(--bg)"><div class="qt">${esc(nameOf(l.target))}<small>אושר ${l.approvedAt ? fmtDate(l.approvedAt) : ''}</small></div><button class="btn ghost" style="min-height:36px;padding:4px 12px;font-size:13px" data-act="rejectlink" data-v="${esc(l.id)}">בטל</button></div>`).join('')}</div></details>`;
+  return h;
 }
 function metricPicker(key) {
   const d = D[key];
@@ -249,7 +282,7 @@ function adminView() {
   const s = draft('set', () => ({ sh: S.settings.startHour, ph: S.settings.pickHours, rh: S.settings.rateHours }));
   const first = nextAutoTime();
   let h = `<div class="display" style="font-size:48px;margin:4px 0 14px">ניהול</div>
-  <button class="btn ghost block" data-act="go" data-v="history" style="margin-bottom:6px">📜 היסטוריית תוצאות (${Object.keys(S.logs || {}).length})</button>`;
+  <button class="btn ghost block" data-act="go" data-v="history" style="margin-bottom:6px">📜 היסטוריית תוצאות (${Object.keys(S.logs || {}).length})</button>` + identityAdminHtml();
   h += `<h2>ממתינים לאישור (${P.length})</h2>`;
   h += P.length ? P.map(t => {
     const k = 'ed:' + t.id; draft(k, () => ({ t: t.text, m: t.metric2 || DEFAULT_M.m, f: t.funny !== false, lang: t.lang || 'any' }));
@@ -373,6 +406,7 @@ function profileView(uid) {
   const stat = (ic, l, v) => `<div class="stat"><span>${ic}</span><b>${v}</b><small>${l}</small></div>`;
   const recent = songs.map(p => ({ p, r: S.rounds.find(r => r.id === p.rid) })).filter(x => x.r).sort((a, b) => b.r.createdAt - a.r.createdAt).slice(0, 10);
   let h = `<button class="back" data-act="go" data-v="board">→ טבלה</button><div class="display topic" style="font-size:56px;margin-bottom:${S.players[uid] && S.players[uid].fullName ? '2px' : '18px'}">${esc(nameOf(uid))}</div>${S.players[uid] && S.players[uid].fullName ? `<p class="muted" style="margin:0 0 16px;font-size:14px">${esc(S.players[uid].fullName)}</p>` : ''}`;
+  if (uid === me && !isAdmin()) h += `<p class="hint" style="margin:-8px 0 14px">📲 מחליפים מכשיר? במכשיר החדש בוחרים "שחזר את החשבון שלי", והמנהל מאשר.</p>`;
   if (T.length) h += `<div class="badges">${T.map(t => `<span class="badge">${t.ic} ${t.n}</span>`).join('')}</div>`;
   h += `<div class="stats">
     ${stat('🏆', 'ניצחונות יומיים', ag.wins)}
