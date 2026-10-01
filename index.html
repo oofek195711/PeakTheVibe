@@ -134,7 +134,7 @@ textarea.field{min-height:92px;resize:none}
 .seg button.on{background:var(--surface);color:var(--ink)}
 .lb{display:flex;align-items:center;gap:14px;padding:14px 4px;border-bottom:1px solid var(--line)}
 .lb .rk{font-family:"Karantina",system-ui,sans-serif;font-weight:700;font-size:30px;width:30px;text-align:center;color:var(--muted)}
-.lb:first-child .rk{color:var(--pink)}
+
 .lb .nm{flex:1;font-weight:800}
 .lb .nm small{display:block;font-weight:400;color:var(--muted);font-size:13px}
 .lb .p{font-family:"Karantina",system-ui,sans-serif;font-weight:700;font-size:34px}
@@ -155,13 +155,43 @@ textarea.field{min-height:92px;resize:none}
 .banner{background:var(--chip);border-radius:14px;padding:12px 14px;font-size:14px;margin-bottom:14px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-weight:700;font-size:15px;z-index:20;max-width:90vw;text-align:center}
 @media (prefers-reduced-motion:no-preference){.topic{animation:drop .5s cubic-bezier(.2,.9,.3,1.2)}@keyframes drop{from{transform:translateY(-10px);opacity:0}to{transform:none;opacity:1}}}
+
+.linkbtn{background:none;border:0;padding:4px 0;font-weight:700;color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line);min-height:32px;text-align:right}
+.res .who.linkbtn{font-weight:800;text-decoration:none;padding:0;min-height:0}
+.chips button.on{background:var(--ink);color:var(--bg)}
+.chips.guess{margin-bottom:0}
+.chips.guess button{min-height:40px}
+.check{display:flex;gap:10px;align-items:center;font-size:14px}
+.check input{width:20px;height:20px;accent-color:var(--pink)}
+.legend{font-size:13px;color:var(--muted);margin:-6px 0 14px;line-height:1.6}
+.qrow{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:14px;padding:12px 14px;margin-bottom:8px}
+.qrow .qt{flex:1;font-weight:700;line-height:1.3}
+.qrow .qt small{display:block;font-weight:400;color:var(--muted);font-size:13px;margin-top:2px}
+.qbtns{display:flex;gap:6px}
+.qbtns button{width:40px;height:40px;border-radius:12px;border:2px solid var(--line);background:transparent;font-size:14px}
+.qbtns button:disabled{opacity:.3}
+details.panel summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
+button.lb{width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:right}
+button.lb:first-of-type .rk{color:var(--pink)}
+.titles{display:grid;gap:8px}
+.ttl{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border-radius:16px;padding:12px 14px}
+.ttl .ic{font-size:28px;line-height:1}
+.ttl b{display:block}
+.ttl small{display:block;color:var(--muted);font-size:13px}
+.ttl .holders{font-weight:800;color:var(--pink);margin-top:2px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--surface);border-radius:18px;padding:14px}
+.stat span{font-size:22px}
+.stat b{display:block;font-family:"Karantina",system-ui,sans-serif;font-size:40px;line-height:1;margin-top:4px}
+.stat small{color:var(--muted);font-size:13px;font-weight:700}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:-6px 0 16px}
+.badge{background:var(--ink);color:var(--bg);border-radius:999px;padding:6px 12px;font-weight:800;font-size:14px}
 </style>
 </head>
 <body>
 <div id="app"><p class="muted" style="padding-top:40px;text-align:center">טוען…</p></div>
 <div id="toast" class="toast" hidden></div>
 <script>
-/* ===== הדבק כאן את ה-firebaseConfig מ-Firebase (שלב 4 בהוראות) ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyAeQVZibOR-alTk5BtmCvkBYla9wl20sMw",
   authDomain: "peakthevibe.firebaseapp.com",
@@ -170,348 +200,568 @@ const firebaseConfig = {
   messagingSenderId: "65914699449",
   appId: "1:65914699449:web:fc6abe1c754deb497d6568"
 };
-/* ==================================================================== */
-const app = document.getElementById('app');
-const SUGGEST = [
-  'השיר הכי דכאוני שאתם מכירים','שיר לפקק באיילון','השיר שתשמעו בהלוויה שלכם',
-  'השיר הכי מביך בפלייליסט שלכם','שיר לחתונה של האקס','שיר שמתאים לשטיפת כלים',
-  'שיר למעלית','שיר לדייט ראשון גרוע','שיר שמזכיר את התיכון','שיר לסוף העולם',
-  'שיר שאמא שלכם אוהבת','שיר לחדר כושר','שיר לנסיעה בלילה','השיר הכי ישראלי שיש',
-  'שיר שהיה צריך להיות ההמנון','שיר ליום האחרון בעבודה','שיר לבוקר יום ראשון',
-  'שיר שאי אפשר לא לשיר איתו'
-];
-let db = null, me = null, canWrite = true, ready = false, fatal = null;
-const S = { rounds: [], picks: [], ratings: [], players: {}, loaded: {} };
-let view = { name: 'home', rid: null };
-let boardMode = 'week';
-const drafts = { pick: {}, rate: {}, nick: '', topic: '', ph: 24, rh: 24 };
-let pending = false, busy = false;
 
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const app = document.getElementById('app');
+const DEFAULT_M = { m: 'כמה הבחירה הצחיקה אותך', f: true };
+const METRICS = [
+  { m: 'כמה הבחירה הצחיקה אותך', f: true },
+  { m: 'כמה זה גורם לך לבהות בגשם', f: false },
+  { m: 'כמה זה נוגע ללב', f: false },
+  { m: 'כמה זה מביך', f: true },
+  { m: 'כמה זה מקפיץ', f: false },
+  { m: 'כמה זה מקורי', f: false }
+];
+const SUGGEST = [
+  { t: 'השיר הכי דכאוני שאתם מכירים', m: 'כמה זה גורם לך לבהות בגשם', f: false },
+  { t: 'השיר הכי גרוע לשים בדייט ראשון', m: 'כמה הבחירה הצחיקה אותך', f: true },
+  { t: 'שיר שהייתם שמים בהלוויה של חבר כדי לעצבן את המשפחה', m: 'כמה הבחירה הצחיקה אותך', f: true },
+  { t: 'השיר הכי יפה ששמעתם בחיים', m: 'כמה זה נוגע ללב', f: false },
+  { t: 'שיר לפקק באיילון', m: 'כמה הבחירה הצחיקה אותך', f: true },
+  { t: 'השיר הכי מביך בפלייליסט שלכם', m: 'כמה זה מביך', f: true },
+  { t: 'שיר שמתאים לבוס האחרון במשחק', m: 'כמה זה מקפיץ', f: false },
+  { t: 'שיר שנשמע כאילו נכתב אחרי 4 שעות שינה', m: 'כמה הבחירה הצחיקה אותך', f: true },
+  { t: 'שיר שמזכיר את התיכון', m: 'כמה זה נוגע ללב', f: false },
+  { t: 'שיר לחדר כושר', m: 'כמה זה מקפיץ', f: false },
+  { t: 'שיר שגורם לאורחים לעוף מהבית', m: 'כמה הבחירה הצחיקה אותך', f: true },
+  { t: 'שיר לנסיעה בלילה', m: 'כמה זה גורם לך לבהות בגשם', f: false },
+  { t: 'השיר הכי ישראלי שיש', m: 'כמה זה מקורי', f: false },
+  { t: 'שיר שאמא שלכם אוהבת', m: 'כמה זה נוגע ללב', f: false },
+  { t: 'שיר שהיה מתנגן כשאתם נכנסים לקרב', m: 'כמה זה מקפיץ', f: false }
+];
+
+let db = null, me = null, ready = false, fatal = null;
+const S = { rounds: [], picks: [], ratings: [], players: {}, topics: [], admin: null,
+  settings: { startHour: 10, pickHours: 24, rateHours: 24 }, loaded: {} };
+let view = { name: 'home', v: null };
+let boardMode = 'week';
+const D = {};
+const rateDraft = {};
+let pending = false, busy = false;
+const wantAdmin = /[?&]admin\b/.test(location.search);
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const safeUrl = u => (typeof u === 'string' && /^https?:\/\//i.test(u.trim())) ? u.trim() : '';
 const now = () => Date.now();
+const isAdmin = () => !!me && S.admin === me;
 const nameOf = uid => (S.players[uid] && S.players[uid].nick) || 'שחקן';
-function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
-function phase(r){const t=now();return t<r.pickEnds?'pick':t<r.rateEnds?'rate':'done'}
-function fmtLeft(ms){
-  if(ms<=0) return 'נגמר';
-  const m=Math.ceil(ms/60000), h=Math.floor(m/60), mm=m%60;
-  if(h>=48) return Math.floor(h/24)+' ימים';
-  if(h>0) return h+' ש׳'+(mm?' ו-'+mm+' דק׳':'');
-  return m+' דק׳';
+const r1 = x => Math.round(x * 10) / 10;
+function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) } return h >>> 0 }
+function phase(r) { const t = now(); return t < r.pickEnds ? 'pick' : t < r.rateEnds ? 'rate' : 'done' }
+const m2of = r => r.metric2 || DEFAULT_M.m;
+const funnyOf = r => r.funny !== false;
+function fmtLeft(ms) {
+  if (ms <= 0) return 'נגמר';
+  const m = Math.ceil(ms / 60000), h = Math.floor(m / 60), mm = m % 60;
+  if (h >= 48) return Math.floor(h / 24) + ' ימים';
+  if (h > 0) return h + ' ש׳' + (mm ? ' ו-' + mm + ' דק׳' : '');
+  return m + ' דק׳';
 }
-function fmtDate(t){return new Date(t).toLocaleDateString('he-IL',{weekday:'short',day:'numeric',month:'numeric'})}
-function weekStart(){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d.getTime()}
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,2600)}
+const fmtDate = t => new Date(t).toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric' });
+const hh = h => String(h).padStart(2, '0') + ':00';
+function weekStart() { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - d.getDay()); return d.getTime() }
+function dayId(d) { return 'd' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2800) }
+function draft(k, init) { if (!D[k]) D[k] = init(); return D[k] }
 
-function ytId(u){const m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:null}
-function linksHtml(p){
-  const q=encodeURIComponent((p.title+' '+(p.artist||'')).trim());
-  const u=safeUrl(p.url);
-  const L=[];
-  if(u){L.push(['▶ הלינק',u]);L.push(['לכל האפליקציות','https://song.link/'+u]);}
-  L.push(['Spotify','https://open.spotify.com/search/'+q]);
-  L.push(['Apple Music','https://music.apple.com/search?term='+q]);
-  L.push(['YouTube','https://www.youtube.com/results?search_query='+q]);
-  return '<div class="links">'+L.map(([t,h])=>`<a href="${esc(h)}" target="_blank" rel="noopener">${esc(t)}</a>`).join('')+'</div>';
+/* ---------- songs ---------- */
+function ytId(u) { const m = (u || '').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m ? m[1] : null }
+function songKeys(p) {
+  const k = [], u = safeUrl(p.url);
+  const y = ytId(u); if (y) k.push('yt:' + y);
+  const sp = u.match(/spotify\.com\/(?:intl-[\w-]+\/)?track\/(\w+)/); if (sp) k.push('sp:' + sp[1]);
+  const am = u.match(/[?&]i=(\d+)/); if (am && /apple\.com/.test(u)) k.push('am:' + am[1]);
+  const norm = s => (s || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  const t = norm(p.title); if (t) k.push('tx:' + t + '|' + norm(p.artist));
+  return k;
 }
-function playlistHead(picks){
-  const ids=picks.map(p=>ytId(safeUrl(p.url))).filter(Boolean);
-  const yt=ids.length?`<a class="btn ghost" style="min-height:40px;padding:8px 14px;font-size:14px" href="https://www.youtube.com/watch_videos?video_ids=${ids.join(',')}" target="_blank" rel="noopener">נגן ${ids.length} ביוטיוב ברצף</a>`:'';
-  return `<div class="head"><span class="muted" style="font-size:14px">${picks.length} שירים</span><span style="display:flex;gap:8px">${yt}<button class="btn ghost" style="min-height:40px;padding:8px 14px;font-size:14px" data-act="copylist">העתק רשימה</button></span></div>`;
+function linksHtml(p) {
+  const q = encodeURIComponent((p.title + ' ' + (p.artist || '')).trim());
+  const u = safeUrl(p.url), L = [];
+  if (u) { L.push(['▶ הלינק', u]); L.push(['לכל האפליקציות', 'https://song.link/' + u]) }
+  L.push(['Spotify', 'https://open.spotify.com/search/' + q]);
+  L.push(['Apple Music', 'https://music.apple.com/search?term=' + q]);
+  L.push(['YouTube', 'https://www.youtube.com/results?search_query=' + q]);
+  return '<div class="links">' + L.map(([t, h]) => `<a href="${esc(h)}" target="_blank" rel="noopener">${esc(t)}</a>`).join('') + '</div>';
+}
+function playlistHead(picks) {
+  const ids = picks.map(p => ytId(safeUrl(p.url))).filter(Boolean);
+  const sm = 'style="min-height:40px;padding:8px 14px;font-size:14px"';
+  const yt = ids.length ? `<a class="btn ghost" ${sm} href="https://www.youtube.com/watch_videos?video_ids=${ids.join(',')}" target="_blank" rel="noopener">נגן ${ids.length} ביוטיוב ברצף</a>` : '';
+  return `<div class="head"><span class="muted" style="font-size:14px">${picks.length} שירים</span><span style="display:flex;gap:8px">${yt}<button class="btn ghost" ${sm} data-act="copylist">העתק רשימה</button></span></div>`;
 }
 
-function results(r){
-  const picks=S.picks.filter(p=>p.rid===r.id);
-  const by={};S.ratings.filter(x=>x.rid===r.id).forEach(x=>by[x.uid]=x.scores||{});
-  const rows=picks.map(p=>{
-    const got=[];
-    for(const [ru,sc] of Object.entries(by)){if(ru===p.uid)continue;const v=sc[p.uid];if(v&&v.fit&&v.fun)got.push(v)}
-    const mine=by[p.uid]||{};
-    const complete=picks.filter(q=>q.uid!==p.uid).every(q=>mine[q.uid]&&mine[q.uid].fit&&mine[q.uid].fun);
-    const n=got.length;
-    const fit=n?got.reduce((a,v)=>a+v.fit,0)/n:0, fun=n?got.reduce((a,v)=>a+v.fun,0)/n:0;
-    const raw=Math.round((fit+fun)*10)/10;
-    return {...p,n,fit,fun,raw,complete,pts:complete?raw:0};
+/* ---------- scoring ---------- */
+function roundData(r) {
+  const picks = S.picks.filter(p => p.rid === r.id);
+  const by = {}, gs = {};
+  S.ratings.filter(x => x.rid === r.id).forEach(x => { by[x.uid] = x.scores || {}; gs[x.uid] = x.guesses || {} });
+  const pickers = new Set(picks.map(p => p.uid));
+  const keyMap = {};
+  picks.forEach(p => songKeys(p).forEach(k => (keyMap[k] = keyMap[k] || new Set()).add(p.uid)));
+  const rows = picks.map(p => {
+    const got = [];
+    for (const [ru, sc] of Object.entries(by)) { if (ru === p.uid) continue; const v = sc[p.uid]; if (v && v.fit && v.fun) got.push(v) }
+    const mine = by[p.uid] || {};
+    const complete = picks.filter(q => q.uid !== p.uid).every(q => mine[q.uid] && mine[q.uid].fit && mine[q.uid].fun);
+    const n = got.length;
+    const fit = n ? got.reduce((a, v) => a + v.fit, 0) / n : 0, fun = n ? got.reduce((a, v) => a + v.fun, 0) / n : 0;
+    const raw = r1(fit + fun);
+    const hive = songKeys(p).some(k => keyMap[k].size > 1);
+    let gRight = 0, gTot = 0;
+    for (const [gu, g] of Object.entries(gs)) { if (gu === p.uid) continue; const v = g[p.uid]; if (v) { gTot++; if (v === p.uid) gRight++ } }
+    return { ...p, n, fit, fun, raw, complete, pts: complete ? raw : 0, hive, gRight, gTot };
   });
-  rows.sort((a,b)=>b.pts-a.pts||b.raw-a.raw);
-  return rows;
+  rows.sort((a, b) => b.pts - a.pts || b.raw - a.raw);
+  const bonus = {}, made = {};
+  for (const [gu, g] of Object.entries(gs)) {
+    let c = 0, m = 0;
+    for (const [pu, v] of Object.entries(g)) { if (pu === gu || !pickers.has(pu) || !v) continue; m++; if (v === pu) c++ }
+    if (c) bonus[gu] = c; if (m) made[gu] = m;
+  }
+  return { rows, bonus, made, funny: funnyOf(r) };
 }
-
-function board(mode){
-  const ws=weekStart();
-  const done=S.rounds.filter(r=>phase(r)==='done'&&(mode==='all'||r.rateEnds>=ws));
-  const tot={};let best=null,funny=null,fitting=null;
-  done.forEach(r=>{
-    const rows=results(r);const top=rows.length&&rows[0].pts>0?rows[0].pts:null;
-    rows.forEach(x=>{
-      const t=tot[x.uid]||(tot[x.uid]={uid:x.uid,pts:0,played:0,wins:0});
-      t.pts+=x.pts;t.played++;if(top!==null&&x.pts===top)t.wins++;
-      const item={...x,topic:r.topic};
-      if(x.complete&&x.n){
-        if(!best||x.pts>best.pts)best=item;
-        if(!funny||x.fun>funny.fun)funny=item;
-        if(!fitting||x.fit>fitting.fit)fitting=item;
-      }
+const doneRounds = () => S.rounds.filter(r => phase(r) === 'done');
+function aggregate(rounds) {
+  const P = {};
+  const g = u => P[u] || (P[u] = { uid: u, pts: 0, bonus: 0, wins: 0, played: 0, fitSum: 0, fitN: 0, funSum: 0, funN: 0, gMade: 0, gOnRight: 0, gOnTot: 0, hive: 0 });
+  let flop = null;
+  rounds.forEach(r => {
+    const d = roundData(r);
+    const top = d.rows.length && d.rows[0].pts > 0 ? d.rows[0].pts : null;
+    d.rows.forEach(x => {
+      const t = g(x.uid); t.pts += x.pts; t.played++;
+      if (top !== null && x.pts === top) t.wins++;
+      if (x.n) { t.fitSum += x.fit; t.fitN++; if (d.funny) { t.funSum += x.fun; t.funN++ } }
+      t.gOnRight += x.gRight; t.gOnTot += x.gTot; if (x.hive) t.hive++;
+      if (x.complete && x.n && (!flop || x.pts < flop.pts)) flop = { ...x, topic: r.topic };
     });
+    Object.entries(d.bonus).forEach(([u, c]) => g(u).bonus += c);
+    Object.entries(d.made).forEach(([u, c]) => g(u).gMade += c);
   });
-  const rows=Object.values(tot).map(t=>({...t,pts:Math.round(t.pts*10)/10})).sort((a,b)=>b.pts-a.pts||b.wins-a.wins);
-  return {rows,count:done.length,best,funny,fitting};
+  Object.values(P).forEach(t => { t.total = r1(t.pts + t.bonus); t.pts = r1(t.pts) });
+  return { P, flop, count: rounds.length };
+}
+function maxBy(arr, f, cond) {
+  let best = null, uids = [];
+  arr.forEach(t => { if (!cond(t)) return; const v = f(t); if (best === null || v > best + 1e-9) { best = v; uids = [t.uid] } else if (Math.abs(v - best) < 1e-9) uids.push(t.uid) });
+  return uids;
+}
+function titles() {
+  const done = doneRounds(), ws = weekStart();
+  const A = Object.values(aggregate(done).P), wk = aggregate(done.filter(r => r.rateEnds >= ws)), W = Object.values(wk.P);
+  return [
+    { ic: '👑', n: 'Weekly Champion', d: 'מקום ראשון השבוע', u: maxBy(W, t => t.total, t => t.total > 0) },
+    { ic: '💀', n: 'Flop of the Week', d: wk.flop ? 'הכי מעט נקודות השבוע: ' + wk.flop.title : 'השיר עם הכי מעט נקודות השבוע', u: wk.flop ? [wk.flop.uid] : [] },
+    { ic: '🐑', n: 'Hive Mind', d: 'בחרו אותו שיר כמו מישהו אחר השבוע', u: W.filter(t => t.hive > 0).map(t => t.uid) },
+    { ic: '🎯', n: 'Sniper', d: 'ממוצע ההתאמה הכי גבוה', u: maxBy(A, t => t.fitSum / t.fitN, t => t.fitN > 0) },
+    { ic: '🤡', n: 'Comedian', d: 'הכי הרבה נקודות מצחיק', u: maxBy(A, t => t.funSum, t => t.funSum > 0) },
+    { ic: '🕵️', n: 'Unpredictable', d: 'הכי קשה לנחש את הבחירות שלו', u: maxBy(A, t => 1 - t.gOnRight / t.gOnTot, t => t.gOnTot >= 3) },
+    { ic: '🔮', n: 'Mind Reader', d: 'הכי הרבה ניחושים נכונים', u: maxBy(A, t => t.bonus, t => t.bonus > 0) }
+  ];
+}
+function streak(uid) {
+  const rs = S.rounds.slice().sort((a, b) => b.createdAt - a.createdAt);
+  let s = 0;
+  for (const r of rs) {
+    if (S.picks.some(p => p.rid === r.id && p.uid === uid)) { s++; continue }
+    if (s === 0 && phase(r) === 'pick') continue;
+    break;
+  }
+  return s;
+}
+
+/* ---------- topic queue + daily rounds ---------- */
+const queue = () => S.topics.filter(t => t.status === 'approved').sort((a, b) => (a.order || 0) - (b.order || 0));
+const pendingTopics = () => S.topics.filter(t => t.status === 'pending').sort((a, b) => a.createdAt - b.createdAt);
+function startOf(d) { const x = new Date(d); x.setHours(S.settings.startHour, 0, 0, 0); return x.getTime() }
+function nextAutoTime() {
+  const t = new Date(), id = dayId(t);
+  if (S.rounds.some(r => r.id === id) || now() >= startOf(t)) { const n = new Date(t); n.setDate(n.getDate() + 1); return startOf(n) }
+  return startOf(t);
+}
+const attempted = {};
+async function ensureToday() {
+  if (!ready || !S.loaded.rounds || !S.loaded.topics || !S.loaded.settings) return;
+  const today = new Date(), st = startOf(today);
+  if (now() < st) return;
+  const id = dayId(today);
+  if (S.rounds.some(r => r.id === id) || attempted[id]) return;
+  attempted[id] = true;
+  const head = queue()[0];
+  let topic, metric2, funny, tref = null;
+  if (head) { topic = head.text; metric2 = head.metric2 || DEFAULT_M.m; funny = head.funny !== false; tref = db.doc('topics/' + head.id) }
+  else {
+    const used = new Set(S.rounds.map(r => r.topic));
+    const pool = SUGGEST.filter(s => !used.has(s.t)); const list = pool.length ? pool : SUGGEST;
+    const s = list[hash(id) % list.length]; topic = s.t; metric2 = s.m; funny = s.f;
+  }
+  const pe = st + S.settings.pickHours * 3600e3;
+  const rref = db.doc('rounds/' + id);
+  try {
+    await db.runTransaction(async t => {
+      const rs = await t.get(rref);
+      if (rs.exists) return;
+      if (tref) { const ts = await t.get(tref); if (!ts.exists || ts.data().status !== 'approved') throw new Error('stale') }
+      t.set(rref, { topic, metric2, funny, auto: true, by: 'auto', createdAt: st, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 });
+      if (tref) t.update(tref, { status: 'used', usedOn: id });
+    });
+  } catch (e) { setTimeout(() => { attempted[id] = false }, 20000) }
 }
 
 /* ---------- rendering ---------- */
-function schedule(){
-  const a=document.activeElement;
-  if(a&&app.contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){pending=true;return}
-  render();
+function schedule() {
+  const a = document.activeElement;
+  if (a && app.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { pending = true } else render();
+  ensureToday();
 }
-app.addEventListener('focusout',()=>{if(!pending)return;setTimeout(()=>{const a=document.activeElement;if(pending&&!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))){pending=false;render()}},0)});
+app.addEventListener('focusout', () => { if (!pending) return; setTimeout(() => { const a = document.activeElement; if (pending && !(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName))) { pending = false; render() } }, 0) });
 
-function nav(){
-  const tab=(n,t)=>`<button class="tab ${view.name===n?'on':''}" data-act="go" data-v="${n}">${t}</button>`;
-  return `<nav class="nav"><div class="in">${tab('home','סבבים')}${canWrite?`<button class="btn add" data-act="go" data-v="new">+ נושא חדש</button>`:''}${tab('board','טבלה')}</div></nav>`;
+function nav() {
+  const tab = (n, t) => `<button class="tab ${view.name === n ? 'on' : ''}" data-act="go" data-v="${n}">${t}</button>`;
+  const np = pendingTopics().length;
+  const mid = isAdmin()
+    ? `<button class="btn add" data-act="go" data-v="admin">ניהול${np ? ' (' + np + ')' : ''}</button>`
+    : `<button class="btn add" data-act="go" data-v="suggest">+ הצע נושא</button>`;
+  return `<nav class="nav"><div class="in">${tab('home', 'סבבים')}${mid}${tab('board', 'טבלה')}</div></nav>`;
 }
-
-function render(){
-  pending=false;
-  if(fatal){app.innerHTML=`<div class="empty"><div class="display">PeakTheVibe</div><p class="muted">${esc(fatal)}</p></div>`;return}
-  if(!ready||!S.loaded.players||!S.loaded.rounds){app.innerHTML='<p class="muted" style="padding-top:40px;text-align:center">טוען…</p>';return}
-  if(!S.players[me]&&canWrite){app.innerHTML=nickView();return}
-  const ro=canWrite?'':`<div class="banner">משהו בהרשאות לא מוגדר נכון. בדוק את ה-Rules ב-Firebase (שלב 3 בהוראות).</div>`;
-  let body='';
-  if(view.name==='round'){const r=S.rounds.find(x=>x.id===view.rid);body=r?roundView(r):homeView()}
-  else if(view.name==='new')body=newView();
-  else if(view.name==='board')body=boardView();
-  else body=homeView();
-  app.innerHTML=ro+body+(view.name==='round'&&phaseOf()==='rate'?'':nav());
+function render() {
+  pending = false;
+  if (fatal) { app.innerHTML = `<div class="empty"><div class="display">PeakTheVibe</div><p class="muted">${esc(fatal)}</p></div>`; return }
+  const L = S.loaded;
+  if (!ready || !L.players || !L.rounds || !L.topics || !L.admin || !L.settings) { app.innerHTML = '<p class="muted" style="padding-top:40px;text-align:center">טוען…</p>'; return }
+  if (!S.players[me]) { app.innerHTML = nickView(); return }
+  let body = '', rateBar = false;
+  const v = view.name;
+  if (v === 'round') { const r = S.rounds.find(x => x.id === view.v); if (r) { body = roundView(r); rateBar = phase(r) === 'rate' } else body = homeView() }
+  else if (v === 'new' && isAdmin()) body = newView();
+  else if (v === 'admin' && isAdmin()) body = adminView();
+  else if (v === 'suggest') body = suggestView();
+  else if (v === 'board') body = boardView();
+  else if (v === 'profile') body = profileView(view.v);
+  else body = homeView();
+  app.innerHTML = body + (rateBar ? '' : nav());
 }
-function phaseOf(){const r=S.rounds.find(x=>x.id===view.rid);return r?phase(r):null}
-
-function nickView(){
+function nickView() {
+  const d = draft('nick', () => ({ v: '' }));
   return `<div style="padding-top:40px"><div class="display" style="font-size:64px;margin-bottom:10px">PeakTheVibe</div>
-  <p>כל יום נושא חדש. בוחרים שיר שמתאים, מדרגים את השירים של כולם, ומי שבחר הכי טוב לוקח.</p>
+  <p>כל יום נושא חדש. בוחרים שיר שמתאים, מדרגים את השירים של כולם, מנחשים מי בחר מה, ומי שבחר הכי טוב לוקח.</p>
   <div class="panel" style="margin-top:22px"><label class="f" for="nick">איך יקראו לך במשחק?</label>
-  <input id="nick" class="field" data-f="nick" maxlength="24" value="${esc(drafts.nick)}" placeholder="למשל: דנה">
+  <input id="nick" class="field" data-f="nick.v" maxlength="24" value="${esc(d.v)}" placeholder="למשל: נגה">
   <button class="btn block" data-act="savenick">יאללה, נכנסים</button></div></div>`;
 }
-
-function homeView(){
-  const open=S.rounds.filter(r=>phase(r)!=='done').sort((a,b)=>(phase(a)==='pick'?a.pickEnds:a.rateEnds)-(phase(b)==='pick'?b.pickEnds:b.rateEnds));
-  const done=S.rounds.filter(r=>phase(r)==='done').sort((a,b)=>b.rateEnds-a.rateEnds);
-  const head=`<div class="brand"><span class="display">PeakTheVibe</span><small>שלום, ${esc(nameOf(me))}</small></div>`;
-  if(!S.rounds.length) return head+`<div class="empty"><div class="display">עוד אין נושא</div><p class="muted">פתח את הסבב הראשון ושלח את הלינק לחברים.</p>${canWrite?'<button class="btn" data-act="go" data-v="new">פתח נושא</button>':''}</div>`;
-  const row=r=>{
-    const ph=phase(r);const picks=S.picks.filter(p=>p.rid===r.id);
-    const mine=picks.some(p=>p.uid===me);
-    const rated=S.ratings.some(x=>x.rid===r.id&&x.uid===me);
-    let pill,info,c;
-    if(ph==='pick'){pill='<span class="pill pick">בוחרים</span>';c='var(--pink)';info=`<span data-ends="${r.pickEnds}">${fmtLeft(r.pickEnds-now())}</span> לבחירה`;
-      if(!mine)pill+=' <span class="pill">עוד לא בחרת</span>'}
-    else if(ph==='rate'){pill='<span class="pill rate">מדרגים</span>';c='var(--mint)';info=`<span data-ends="${r.rateEnds}">${fmtLeft(r.rateEnds-now())}</span> לדירוג`;
-      if(!rated&&mine)pill+=' <span class="pill">חסר הדירוג שלך</span>'}
-    else{const w=results(r)[0];pill='<span class="pill">תוצאות</span>';info=w&&w.pts>0?'ניצח/ה: '+esc(nameOf(w.uid)):'אין ניקוד';c='var(--line)'}
+function metricPicker(key) {
+  const d = D[key];
+  return `<label class="f">המדד השני (הראשון תמיד: התאמה לנושא)</label>
+  <input class="field" data-f="${key}.m" maxlength="50" value="${esc(d.m)}">
+  <div class="chips">${METRICS.map((x, i) => `<button class="${d.m === x.m ? 'on' : ''}" data-act="metric" data-k="${esc(key)}" data-i="${i}">${esc(x.m)}</button>`).join('')}</div>
+  <label class="check"><input type="checkbox" data-f="${key}.f" ${d.f ? 'checked' : ''}> מדד הומור (נספר לתואר Comedian ולממוצע המצחיק)</label>`;
+}
+function homeView() {
+  const open = S.rounds.filter(r => phase(r) !== 'done').sort((a, b) => (phase(a) === 'pick' ? a.pickEnds : a.rateEnds) - (phase(b) === 'pick' ? b.pickEnds : b.rateEnds));
+  const done = doneRounds().sort((a, b) => b.rateEnds - a.rateEnds);
+  let head = `<div class="brand"><span class="display">PeakTheVibe</span><button class="linkbtn" data-act="prof" data-v="${esc(me)}">${esc(nameOf(me))}</button></div>`;
+  if (wantAdmin && !S.admin) head += `<div class="banner">עוד אין מנהל למשחק. <button class="btn" style="min-height:40px;margin-top:8px" data-act="claim">הפוך אותי למנהל</button></div>`;
+  const nt = nextAutoTime();
+  const nextLine = `<p class="hint" style="margin:0 0 6px">הנושא הבא נפתח ${new Date(nt).toDateString() === new Date().toDateString() ? 'היום' : 'מחר'} ב-${hh(S.settings.startHour)}.</p>`;
+  if (!S.rounds.length) return head + `<div class="empty"><div class="display">עוד אין נושא</div><p class="muted">הסבב הראשון ייפתח לבד ב-${hh(S.settings.startHour)}.</p></div>`;
+  const row = r => {
+    const ph = phase(r), picks = S.picks.filter(p => p.rid === r.id);
+    const mine = picks.some(p => p.uid === me), rated = S.ratings.some(x => x.rid === r.id && x.uid === me);
+    let pill, info, c;
+    if (ph === 'pick') { pill = '<span class="pill pick">בוחרים</span>'; c = 'var(--pink)'; info = `<span data-ends="${r.pickEnds}">${fmtLeft(r.pickEnds - now())}</span> לבחירה`; if (!mine) pill += ' <span class="pill">עוד לא בחרת</span>' }
+    else if (ph === 'rate') { pill = '<span class="pill rate">מדרגים</span>'; c = 'var(--mint)'; info = `<span data-ends="${r.rateEnds}">${fmtLeft(r.rateEnds - now())}</span> לדירוג`; if (!rated) pill += ' <span class="pill">חסר הדירוג שלך</span>' }
+    else { const w = roundData(r).rows[0]; pill = '<span class="pill">תוצאות</span>'; info = w && w.pts > 0 ? 'ניצח/ה: ' + esc(nameOf(w.uid)) : 'אין ניקוד'; c = 'var(--line)' }
     return `<button class="round" style="--c:${c}" data-act="open" data-v="${esc(r.id)}"><span class="display">${esc(r.topic)}</span><span class="meta"><span>${pill}</span><span>${info}</span></span><span class="meta" style="margin-top:4px"><span>${picks.length} שירים</span><span>${fmtDate(r.createdAt)}</span></span></button>`;
   };
-  return head+(open.length?`<h2>פתוחים עכשיו</h2>`+open.map(row).join(''):'')+(done.length?`<h2>הסתיימו</h2>`+done.map(row).join(''):'');
+  return head + nextLine + (open.length ? `<h2>פתוחים עכשיו</h2>` + open.map(row).join('') : '') + (done.length ? `<h2>הסתיימו</h2>` + done.map(row).join('') : '');
 }
-
-function newView(){
-  const opt=(v,sel)=>[6,12,24,48].map(h=>`<option value="${h}" ${h==sel?'selected':''}>${h} שעות</option>`).join('');
-  return `<button class="back" data-act="go" data-v="home">→ חזרה</button>
-  <div class="display" style="font-size:48px;margin:4px 0 16px">נושא חדש</div>
+function hoursOpt(sel) { return [6, 12, 24, 48].map(h => `<option value="${h}" ${h == sel ? 'selected' : ''}>${h} שעות</option>`).join('') }
+function newView() {
+  const d = draft('new', () => ({ t: '', m: DEFAULT_M.m, f: true, ph: S.settings.pickHours, rh: S.settings.rateHours }));
+  return `<button class="back" data-act="go" data-v="admin">→ ניהול</button>
+  <div class="display" style="font-size:48px;margin:4px 0 6px">סבב מיידי</div>
+  <p class="hint" style="margin:0 0 14px">נפתח עכשיו, בנוסף לסבב היומי האוטומטי.</p>
   <div class="panel">
   <label class="f" for="topic">הנושא</label>
-  <textarea id="topic" class="field" data-f="topic" maxlength="90" placeholder="השיר הכי דכאוני שאתם מכירים">${esc(drafts.topic)}</textarea>
-  <p class="hint">צריך רעיון? תבחר אחד:</p>
-  <div class="chips">${SUGGEST.slice().sort((a,b)=>hash(a+new Date().toDateString())-hash(b+new Date().toDateString())).slice(0,6).map(s=>`<button data-act="sugg" data-v="${esc(s)}">${esc(s)}</button>`).join('')}</div>
-  <div class="two"><div><label class="f" for="ph">זמן לבחירה</label><select id="ph" class="field" data-f="ph">${opt(0,drafts.ph)}</select></div>
-  <div><label class="f" for="rh">זמן לדירוג</label><select id="rh" class="field" data-f="rh">${opt(0,drafts.rh)}</select></div></div>
-  <button class="btn block" data-act="create" ${busy?'disabled':''}>פתח את הסבב</button></div>`;
+  <textarea id="topic" class="field" data-f="new.t" maxlength="90">${esc(d.t)}</textarea>
+  <div class="chips">${SUGGEST.slice().sort((a, b) => hash(a.t + new Date().toDateString()) - hash(b.t + new Date().toDateString())).slice(0, 5).map((s, i) => `<button data-act="sugg" data-v="${esc(s.t)}">${esc(s.t)}</button>`).join('')}</div>
+  ${metricPicker('new')}
+  <div class="two" style="margin-top:14px"><div><label class="f">זמן לבחירה</label><select class="field" data-f="new.ph">${hoursOpt(d.ph)}</select></div>
+  <div><label class="f">זמן לדירוג</label><select class="field" data-f="new.rh">${hoursOpt(d.rh)}</select></div></div>
+  <button class="btn block" data-act="create" ${busy ? 'disabled' : ''}>פתח את הסבב עכשיו</button></div>`;
 }
-
-function steps(ph){
-  const order=['pick','rate','done'],names={pick:'בחירה',rate:'דירוג',done:'תוצאות'};const i=order.indexOf(ph);
-  return `<div class="steps">${order.map((k,j)=>`<div class="${j===i?'on':j<i?'past':''}">${names[k]}</div>`).join('')}</div>`;
+function suggestView() {
+  const d = draft('sg', () => ({ t: '', m: DEFAULT_M.m, f: true }));
+  const mine = S.topics.filter(t => t.by === me).sort((a, b) => b.createdAt - a.createdAt);
+  const st = { pending: 'ממתין לאישור', approved: 'אושר, בתור', used: 'עלה לאוויר', rejected: 'לא אושר' };
+  return `<div class="display" style="font-size:48px;margin:4px 0 6px">הצע נושא</div>
+  <p class="hint" style="margin:0 0 14px">הנושא נשלח למנהל. אם יאושר, הוא ייכנס לתור ויעלה באחד הימים, בלי שיופיע מי כתב אותו.</p>
+  <div class="panel"><label class="f" for="sgt">הנושא</label>
+  <textarea id="sgt" class="field" data-f="sg.t" maxlength="90" placeholder="שיר שמתאים לבוס האחרון במשחק">${esc(d.t)}</textarea>
+  ${metricPicker('sg')}
+  <button class="btn block" style="margin-top:14px" data-act="submittopic" ${busy ? 'disabled' : ''}>שלח למנהל</button></div>
+  ${mine.length ? `<h2>הנושאים ששלחת</h2>` + mine.map(t => `<div class="qrow"><div class="qt">${esc(t.text)}</div><span class="pill ${t.status === 'used' ? 'rate' : ''}">${st[t.status] || ''}</span></div>`).join('') : ''}`;
 }
-
-function roundView(r){
-  const ph=phase(r);const picks=S.picks.filter(p=>p.rid===r.id);
-  const isCreator=r.by===me;
-  let h=`<button class="back" data-act="go" data-v="home">→ כל הסבבים</button><div class="display topic">${esc(r.topic)}</div>${steps(ph)}`;
-  if(ph==='pick'){
-    const mine=picks.find(p=>p.uid===me);
-    if(drafts.pick[r.id]===undefined)drafts.pick[r.id]=mine?{title:mine.title,artist:mine.artist||'',url:mine.url||''}:{title:'',artist:'',url:''};
-    const d=drafts.pick[r.id];
-    h+=`<div class="clock">נשארו <b data-ends="${r.pickEnds}">${fmtLeft(r.pickEnds-now())}</b> לבחירה. ${picks.length} כבר בחרו.</div>`;
-    if(canWrite){
-      h+=`<div class="panel">${mine?`<div class="mine"><b>הבחירה שלך:</b> ${esc(mine.title)}${mine.artist?' / '+esc(mine.artist):''}<div class="hint" style="margin:4px 0 0">אפשר לשנות עד סוף זמן הבחירה.</div></div>`:''}
-      <label class="f" for="pt">שם השיר</label><input id="pt" class="field" data-f="p.title" maxlength="80" value="${esc(d.title)}">
-      <label class="f" for="pa">אמן</label><input id="pa" class="field" data-f="p.artist" maxlength="60" value="${esc(d.artist)}">
-      <label class="f" for="pu">לינק (לא חובה)</label><input id="pu" class="field" data-f="p.url" inputmode="url" dir="ltr" value="${esc(d.url)}" placeholder="Spotify / Apple Music / YouTube">
+function adminView() {
+  const P = pendingTopics(), Q = queue();
+  const s = draft('set', () => ({ sh: S.settings.startHour, ph: S.settings.pickHours, rh: S.settings.rateHours }));
+  const first = nextAutoTime();
+  let h = `<div class="display" style="font-size:48px;margin:4px 0 14px">ניהול</div>`;
+  h += `<h2>ממתינים לאישור (${P.length})</h2>`;
+  h += P.length ? P.map(t => {
+    const k = 'ed:' + t.id; draft(k, () => ({ t: t.text, m: t.metric2 || DEFAULT_M.m, f: t.funny !== false }));
+    return `<div class="panel" style="margin-bottom:10px"><p class="hint" style="margin:0 0 6px">נשלח ע״י ${esc(nameOf(t.by))}</p>
+    <textarea class="field" data-f="${k}.t" maxlength="90">${esc(D[k].t)}</textarea>${metricPicker(k)}
+    <div class="row-actions"><button class="btn" data-act="approve" data-v="${esc(t.id)}">אשר והכנס לתור</button><button class="btn ghost" data-act="reject" data-v="${esc(t.id)}">דחה</button></div></div>`;
+  }).join('') : `<p class="muted">אין נושאים שממתינים.</p>`;
+  h += `<h2>התור (${Q.length})</h2>`;
+  h += Q.length ? Q.map((t, i) => {
+    const d = new Date(first); d.setDate(d.getDate() + i);
+    return `<div class="qrow"><div class="qt">${esc(t.text)}<small>${fmtDate(d.getTime())} · ${esc(t.metric2 || DEFAULT_M.m)}</small></div>
+    <span class="qbtns"><button data-act="qmove" data-v="${esc(t.id)}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="למעלה">▲</button><button data-act="qmove" data-v="${esc(t.id)}" data-d="1" ${i === Q.length - 1 ? 'disabled' : ''} aria-label="למטה">▼</button><button data-act="qdel" data-v="${esc(t.id)}" aria-label="מחק">✕</button></span></div>`;
+  }).join('') : `<p class="muted">התור ריק. כשאין נושא בתור, נבחר נושא מהמאגר המובנה.</p>`;
+  draft('add', () => ({ t: '', m: DEFAULT_M.m, f: true }));
+  h += `<details class="panel" style="margin-top:10px"><summary><b>הוסף נושא ישר לתור</b></summary><div style="margin-top:12px">
+  <textarea class="field" data-f="add.t" maxlength="90">${esc(D.add.t)}</textarea>${metricPicker('add')}
+  <button class="btn block" style="margin-top:12px" data-act="addq">הוסף לסוף התור</button></div></details>`;
+  h += `<h2>הסבב היומי</h2><div class="panel">
+  <label class="f">שעת פתיחה כל יום</label><select class="field" data-f="set.sh">${Array.from({ length: 24 }, (_, i) => `<option value="${i}" ${i == s.sh ? 'selected' : ''}>${hh(i)}</option>`).join('')}</select>
+  <div class="two"><div><label class="f">זמן לבחירה</label><select class="field" data-f="set.ph">${hoursOpt(s.ph)}</select></div><div><label class="f">זמן לדירוג</label><select class="field" data-f="set.rh">${hoursOpt(s.rh)}</select></div></div>
+  <button class="btn block" data-act="savesettings">שמור הגדרות</button>
+  <p class="hint" style="margin:10px 0 0">השינוי חל מהסבב הבא.</p></div>
+  <div class="row-actions"><button class="btn ghost block" data-act="go" data-v="new">פתח סבב מיידי עם נושא משלך</button></div>`;
+  return h;
+}
+function steps(ph) {
+  const order = ['pick', 'rate', 'done'], names = { pick: 'בחירה', rate: 'דירוג וניחוש', done: 'תוצאות' }, i = order.indexOf(ph);
+  return `<div class="steps">${order.map((k, j) => `<div class="${j === i ? 'on' : j < i ? 'past' : ''}">${names[k]}</div>`).join('')}</div>`;
+}
+function roundView(r) {
+  const ph = phase(r), picks = S.picks.filter(p => p.rid === r.id), adm = isAdmin();
+  let h = `<button class="back" data-act="go" data-v="home">→ כל הסבבים</button><div class="display topic">${esc(r.topic)}</div>${steps(ph)}`;
+  const legend = `<p class="legend">🎯 התאמה לנושא<br>✨ ${esc(m2of(r))}</p>`;
+  if (ph === 'pick') {
+    const mine = picks.find(p => p.uid === me), k = 'pk:' + r.id;
+    const d = draft(k, () => mine ? { title: mine.title, artist: mine.artist || '', url: mine.url || '' } : { title: '', artist: '', url: '' });
+    h += `<div class="clock">נשארו <b data-ends="${r.pickEnds}">${fmtLeft(r.pickEnds - now())}</b> לבחירה. ${picks.length} כבר בחרו.</div>${legend}`;
+    h += `<div class="panel">${mine ? `<div class="mine"><b>הבחירה שלך:</b> ${esc(mine.title)}${mine.artist ? ' / ' + esc(mine.artist) : ''}<div class="hint" style="margin:4px 0 0">אפשר לשנות עד סוף זמן הבחירה.</div></div>` : ''}
+      <label class="f" for="pt">שם השיר</label><input id="pt" class="field" data-f="${k}.title" maxlength="80" value="${esc(d.title)}">
+      <label class="f" for="pa">אמן</label><input id="pa" class="field" data-f="${k}.artist" maxlength="60" value="${esc(d.artist)}">
+      <label class="f" for="pu">לינק (לא חובה)</label><input id="pu" class="field" data-f="${k}.url" inputmode="url" dir="ltr" value="${esc(d.url)}" placeholder="Spotify / Apple Music / YouTube">
       <p class="hint">מדביקים לינק מכל אפליקציה. כל אחד יוכל לפתוח את השיר באפליקציה שלו.</p>
-      <button class="btn block" data-act="savepick" ${busy?'disabled':''}>${mine?'עדכן בחירה':'שלח את השיר'}</button></div>`;
-    }
-    if(isCreator&&picks.length>=2)h+=`<div class="row-actions"><button class="btn ghost block" data-act="endpick">כולם בחרו? התחל דירוג עכשיו</button></div>`;
-    h+=`<p class="hint" style="margin-top:14px">השירים של האחרים נחשפים רק בשלב הדירוג, בלי שמות.</p>`;
+      <button class="btn block" data-act="savepick" ${busy ? 'disabled' : ''}>${mine ? 'עדכן בחירה' : 'שלח את השיר'}</button></div>`;
+    if (adm && picks.length >= 2) h += `<div class="row-actions"><button class="btn ghost block" data-act="endpick">כולם בחרו? התחל דירוג עכשיו</button></div>`;
+    h += `<p class="hint" style="margin-top:14px">בשלב הדירוג השירים מוצגים בלי שמות, וכל אחד מנחש מי בחר מה. ניחוש נכון שווה נקודת בונוס.</p>`;
   }
-  else if(ph==='rate'){
-    const order=picks.slice().sort((a,b)=>hash(r.id+a.uid)-hash(r.id+b.uid));
-    const saved=(S.ratings.find(x=>x.rid===r.id&&x.uid===me)||{}).scores||{};
-    if(drafts.rate[r.id]===undefined)drafts.rate[r.id]=JSON.parse(JSON.stringify(saved));
-    const d=drafts.rate[r.id];
-    const others=order.filter(p=>p.uid!==me);
-    const doneN=others.filter(p=>d[p.uid]&&d[p.uid].fit&&d[p.uid].fun).length;
-    const dirty=JSON.stringify(d)!==JSON.stringify(saved);
-    const iPicked=picks.some(p=>p.uid===me);
-    h+=`<div class="clock">נשארו <b data-ends="${r.rateEnds}">${fmtLeft(r.rateEnds-now())}</b> לדירוג. מי שבחר/ה שיר ולא דירג/ה את כולם לא מקבל/ת נקודות בסבב.</div>`;
-    h+=`<div class="playlist">${playlistHead(order)}`;
-    h+=order.map(p=>{
-      if(p.uid===me)return `<div class="song self"><div class="t">${esc(p.title)}</div><div class="a">${esc(p.artist)}</div><div class="hint" style="margin:6px 0 0">השיר שלך, לא מדרגים אותו</div></div>`;
-      const v=d[p.uid]||{};
-      const dots=(k)=>[1,2,3,4,5].map(n=>`<button class="${v[k]===n?'on':''}" data-act="rate" data-u="${esc(p.uid)}" data-k="${k}" data-n="${n}" aria-label="${n}" ${canWrite?'':'disabled'}>${n}</button>`).join('');
+  else if (ph === 'rate') {
+    const order = picks.slice().sort((a, b) => hash(r.id + a.uid) - hash(r.id + b.uid));
+    const sd = S.ratings.find(x => x.rid === r.id && x.uid === me) || {};
+    const saved = { scores: sd.scores || {}, guesses: sd.guesses || {} };
+    if (!rateDraft[r.id]) rateDraft[r.id] = JSON.parse(JSON.stringify(saved));
+    const d = rateDraft[r.id];
+    const others = order.filter(p => p.uid !== me);
+    const cands = picks.map(p => p.uid).filter(u => u !== me).sort((a, b) => nameOf(a).localeCompare(nameOf(b), 'he'));
+    const doneN = others.filter(p => d.scores[p.uid] && d.scores[p.uid].fit && d.scores[p.uid].fun).length;
+    const dirty = JSON.stringify(d) !== JSON.stringify(saved);
+    h += `<div class="clock">נשארו <b data-ends="${r.rateEnds}">${fmtLeft(r.rateEnds - now())}</b> לדירוג. מי שבחר/ה שיר ולא דירג/ה את כולם לא מקבל/ת נקודות על השיר.</div>`;
+    h += `<div class="playlist">${playlistHead(order)}`;
+    h += order.map(p => {
+      if (p.uid === me) return `<div class="song self"><div class="t">${esc(p.title)}</div><div class="a">${esc(p.artist)}</div><div class="hint" style="margin:6px 0 0">השיר שלך, לא מדרגים אותו</div></div>`;
+      const v = d.scores[p.uid] || {};
+      const dots = k => [1, 2, 3, 4, 5].map(n => `<button class="${v[k] === n ? 'on' : ''}" data-act="rate" data-u="${esc(p.uid)}" data-k="${k}" data-n="${n}" aria-label="${n}">${n}</button>`).join('');
+      const gs = cands.length > 1 ? `<div class="scale"><span>🕵️ מי בחר את השיר? (בונוס)</span><div class="chips guess">${cands.map(u => `<button class="${d.guesses[p.uid] === u ? 'on' : ''}" data-act="guess" data-u="${esc(p.uid)}" data-g="${esc(u)}">${esc(nameOf(u))}</button>`).join('')}</div></div>` : '';
       return `<div class="song"><div class="t">${esc(p.title)}</div><div class="a">${esc(p.artist)}</div>${linksHtml(p)}
-      <div class="scale"><span>כמה מתאים לנושא</span><div class="dots">${dots('fit')}</div></div>
-      <div class="scale"><span>כמה מצחיק</span><div class="dots fun">${dots('fun')}</div></div></div>`;
-    }).join('')+'</div>';
-    if(isCreator)h+=`<div class="row-actions"><button class="btn ghost block" data-act="endrate">כולם דירגו? חשוף תוצאות עכשיו</button></div>`;
-    h+=`<div style="height:70px"></div>`;
-    if(canWrite&&others.length)h+=`<div class="savebar"><div class="in"><div class="prog">דירגת ${doneN} מתוך ${others.length}${!iPicked?'<br><span class="muted" style="font-weight:400">לא בחרת שיר בסבב הזה</span>':''}</div><button class="btn" data-act="saverate" ${(!dirty||busy)?'disabled':''}>${dirty?'שמור דירוג':'נשמר'}</button></div></div>`;
-    else h+=nav();
+      <div class="scale"><span>🎯 כמה מתאים לנושא</span><div class="dots">${dots('fit')}</div></div>
+      <div class="scale"><span>✨ ${esc(m2of(r))}</span><div class="dots fun">${dots('fun')}</div></div>${gs}</div>`;
+    }).join('') + '</div>';
+    if (adm) h += `<div class="row-actions"><button class="btn ghost block" data-act="endrate">כולם דירגו? חשוף תוצאות עכשיו</button></div>`;
+    h += `<div style="height:70px"></div>`;
+    if (others.length) h += `<div class="savebar"><div class="in"><div class="prog">דירגת ${doneN} מתוך ${others.length}</div><button class="btn" data-act="saverate" ${(!dirty || busy) ? 'disabled' : ''}>${dirty ? 'שמור' : 'נשמר'}</button></div></div>`;
+    else h += nav();
   }
-  else{
-    const rows=results(r);
-    if(!rows.length)return h+`<p class="muted">אף אחד לא בחר שיר בסבב הזה.</p>`;
-    const rated=rows.filter(x=>x.n&&x.complete);
-    const fun=rated.slice().sort((a,b)=>b.fun-a.fun)[0], fit=rated.slice().sort((a,b)=>b.fit-a.fit)[0];
-    if(fun&&fit)h+=`<div class="awards"><div class="award"><small>הכי מתאים לנושא</small><b>${esc(fit.title)}</b><small style="margin-top:4px">${esc(nameOf(fit.uid))}</small></div><div class="award"><small>הכי מצחיק</small><b>${esc(fun.title)}</b><small style="margin-top:4px">${esc(nameOf(fun.uid))}</small></div></div>`;
-    const top=rows[0].pts;
-    h+=`<div class="playlist">${playlistHead(rows)}</div>`;
-    h+=rows.map((x,i)=>`<div class="res ${x.pts>0&&x.pts===top?'win':''}"><div class="rk">${i+1}</div><div><div class="who">${esc(nameOf(x.uid))}${x.uid===me?' (את/ה)':''}</div><div class="sg">${esc(x.title)}${x.artist?' / '+esc(x.artist):''}</div></div><div class="pts">${x.pts}</div>
-    <div class="sub">${x.complete?`<span>מתאים ${x.fit.toFixed(1)}</span><span>מצחיק ${x.fun.toFixed(1)}</span><span>${x.n} דירוגים</span>`:'<span style="color:var(--warn);font-weight:700">לא סיים/ה לדרג, 0 נקודות</span>'}</div>${linksHtml(x)}</div>`).join('');
-    h+=`<p class="hint" style="margin-top:12px">הניקוד הוא ממוצע (מתאים + מצחיק) מכל המדרגים, עד 10 לסבב.</p>`;
+  else {
+    const rd = roundData(r), rows = rd.rows;
+    if (!rows.length) return h + `<p class="muted">אף אחד לא בחר שיר בסבב הזה.</p>`;
+    const rated = rows.filter(x => x.n && x.complete);
+    const fun = rated.slice().sort((a, b) => b.fun - a.fun)[0], fit = rated.slice().sort((a, b) => b.fit - a.fit)[0];
+    if (fun && fit) h += `<div class="awards"><div class="award"><small>🎯 הכי מתאים לנושא</small><b>${esc(fit.title)}</b><small style="margin-top:4px">${esc(nameOf(fit.uid))}</small></div><div class="award"><small>✨ ${esc(m2of(r))}</small><b>${esc(fun.title)}</b><small style="margin-top:4px">${esc(nameOf(fun.uid))}</small></div></div>`;
+    const top = rows[0].pts;
+    h += `<div class="playlist">${playlistHead(rows)}</div>${legend}`;
+    h += rows.map((x, i) => `<div class="res ${x.pts > 0 && x.pts === top ? 'win' : ''}"><div class="rk">${i + 1}</div><div><button class="who linkbtn" data-act="prof" data-v="${esc(x.uid)}">${esc(nameOf(x.uid))}${x.uid === me ? ' (את/ה)' : ''}</button><div class="sg">${esc(x.title)}${x.artist ? ' / ' + esc(x.artist) : ''}</div></div><div class="pts">${x.pts}</div>
+    <div class="sub">${x.complete ? `<span>🎯 ${x.fit.toFixed(1)}</span><span>✨ ${x.fun.toFixed(1)}</span>` : '<span style="color:var(--warn);font-weight:700">לא סיים/ה לדרג, 0 נקודות</span>'}${x.gTot ? `<span>🕵️ ${x.gRight}/${x.gTot} ניחשו</span>` : ''}${x.hive ? '<span>🐑 Hive Mind</span>' : ''}</div>${linksHtml(x)}</div>`).join('');
+    const b = Object.entries(rd.bonus).sort((a, c) => c[1] - a[1]);
+    h += `<h2>בונוס ניחושים</h2>` + (b.length ? b.map(([u, c]) => `<div class="qrow"><div class="qt">${esc(nameOf(u))}</div><b>+${c}</b></div>`).join('') : `<p class="muted">אף אחד לא ניחש נכון הפעם.</p>`);
+    h += `<p class="hint" style="margin-top:12px">ניקוד שיר: ממוצע (🎯 + ✨) מכל המדרגים, עד 10. כל ניחוש נכון: נקודה נוספת.</p>`;
   }
   return h;
 }
-
-function boardView(){
-  const b=board(boardMode);
-  let h=`<div class="brand"><span class="display">טבלה</span></div>
-  <div class="seg"><button class="${boardMode==='week'?'on':''}" data-act="bm" data-v="week">השבוע</button><button class="${boardMode==='all'?'on':''}" data-act="bm" data-v="all">כל הזמנים</button></div>`;
-  if(!b.rows.length)return h+`<div class="empty"><div class="display">${boardMode==='week'?'עוד אין סבבים השבוע':'עוד אין תוצאות'}</div><p class="muted">הטבלה מתמלאת כשסבב מגיע לשלב התוצאות.</p></div>`;
-  const lead=b.rows[0];
-  h+=`<div class="hero"><small>${boardMode==='week'?'מוביל/ה השבוע':'מוביל/ה בכל הזמנים'}, ${b.count} סבבים</small><span class="display">${esc(nameOf(lead.uid))}</span><small>${lead.pts} נקודות, ${lead.wins} ניצחונות</small></div>`;
-  const aw=[];
-  if(b.best)aw.push(['השיר הכי חזק',b.best]);
-  if(b.funny)aw.push(['הכי מצחיק',b.funny]);
-  if(b.fitting&&aw.length<2)aw.push(['הכי מתאים',b.fitting]);
-  if(aw.length)h+=`<div class="awards">${aw.map(([t,x])=>`<div class="award"><small>${t}</small><b>${esc(x.title)}</b><small style="margin-top:4px">${esc(nameOf(x.uid))} על "${esc(x.topic)}"</small></div>`).join('')}</div>`;
-  h+=b.rows.map((x,i)=>`<div class="lb"><div class="rk">${i+1}</div><div class="nm">${esc(nameOf(x.uid))}${x.uid===me?' (את/ה)':''}<small>${x.played} סבבים, ${x.wins} ניצחונות</small></div><div class="p">${x.pts}</div></div>`).join('');
-  if(boardMode==='week')h+=`<p class="hint" style="margin-top:12px">השבוע מתחיל ביום ראשון.</p>`;
+function boardView() {
+  const ws = weekStart(), rs = doneRounds().filter(r => boardMode === 'all' || r.rateEnds >= ws);
+  const ag = aggregate(rs), rows = Object.values(ag.P).sort((a, b) => b.total - a.total || b.wins - a.wins);
+  let h = `<div class="brand"><span class="display">טבלה</span></div>
+  <div class="seg"><button class="${boardMode === 'week' ? 'on' : ''}" data-act="bm" data-v="week">השבוע</button><button class="${boardMode === 'all' ? 'on' : ''}" data-act="bm" data-v="all">כל הזמנים</button></div>`;
+  if (rows.length) {
+    const lead = rows[0];
+    h += `<div class="hero"><small>${boardMode === 'week' ? 'מוביל/ה השבוע' : 'מוביל/ה בכל הזמנים'}, ${ag.count} סבבים</small><span class="display">${esc(nameOf(lead.uid))}</span><small>${lead.total} נקודות, ${lead.wins} ניצחונות</small></div>`;
+    h += rows.map((x, i) => `<button class="lb" data-act="prof" data-v="${esc(x.uid)}"><span class="rk">${i + 1}</span><span class="nm">${esc(nameOf(x.uid))}${x.uid === me ? ' (את/ה)' : ''}<small>${x.played} סבבים, ${x.wins} ניצחונות${x.bonus ? ', +' + x.bonus + ' מניחושים' : ''}</small></span><span class="p">${x.total}</span></button>`).join('');
+  } else h += `<div class="empty" style="padding:24px 8px"><div class="display" style="font-size:36px">${boardMode === 'week' ? 'עוד אין תוצאות השבוע' : 'עוד אין תוצאות'}</div><p class="muted">הטבלה מתמלאת כשסבב מגיע לשלב התוצאות.</p></div>`;
+  const T = titles().filter(t => t.u.length);
+  h += `<h2>תארים</h2>` + (T.length ? `<div class="titles">${T.map(t => `<div class="ttl"><span class="ic">${t.ic}</span><div><b>${t.n}</b><small>${esc(t.d)}</small><div class="holders">${t.u.map(u => esc(nameOf(u))).join(', ')}</div></div></div>`).join('')}</div>` : `<p class="muted">התארים יחולקו אחרי הסבבים הראשונים.</p>`);
+  h += `<p class="hint" style="margin-top:12px">השבוע מתחיל ביום ראשון. לחיצה על שם פותחת פרופיל.</p>`;
+  return h;
+}
+function profileView(uid) {
+  const ag = aggregate(doneRounds()).P[uid] || { wins: 0, fitN: 0, fitSum: 0, funN: 0, funSum: 0, bonus: 0, gMade: 0, total: 0, played: 0 };
+  const songs = S.picks.filter(p => p.uid === uid);
+  const T = titles().filter(t => t.u.includes(uid));
+  const stat = (ic, l, v) => `<div class="stat"><span>${ic}</span><b>${v}</b><small>${l}</small></div>`;
+  const recent = songs.map(p => ({ p, r: S.rounds.find(r => r.id === p.rid) })).filter(x => x.r).sort((a, b) => b.r.createdAt - a.r.createdAt).slice(0, 10);
+  let h = `<button class="back" data-act="go" data-v="board">→ טבלה</button><div class="display topic" style="font-size:56px">${esc(nameOf(uid))}</div>`;
+  if (T.length) h += `<div class="badges">${T.map(t => `<span class="badge">${t.ic} ${t.n}</span>`).join('')}</div>`;
+  h += `<div class="stats">
+    ${stat('🏆', 'ניצחונות יומיים', ag.wins)}
+    ${stat('⭐', 'נקודות בסך הכל', ag.total)}
+    ${stat('🎯', 'ממוצע התאמה', ag.fitN ? (ag.fitSum / ag.fitN).toFixed(1) : '–')}
+    ${stat('😂', 'ממוצע מצחיק', ag.funN ? (ag.funSum / ag.funN).toFixed(1) : '–')}
+    ${stat('🎵', 'שירים שנבחרו', songs.length)}
+    ${stat('🔥', 'סבבים ברצף', streak(uid))}
+    ${stat('🔮', 'ניחושים נכונים', ag.gMade ? ag.bonus + '/' + ag.gMade : '–')}
+    ${stat('🕵️', 'ניחשו אותו/ה', ag.gOnTot ? Math.round(100 * ag.gOnRight / ag.gOnTot) + '%' : '–')}
+  </div>`;
+  if (recent.length) h += `<h2>בחירות אחרונות</h2>` + recent.map(({ p, r }) => {
+    const done = phase(r) === 'done'; const row = done ? roundData(r).rows.find(x => x.uid === uid) : null;
+    const show = done || uid === me;
+    return `<div class="qrow"><div class="qt">${show ? esc(p.title) : '🔒 ייחשף בסוף הסבב'}<small>${esc(r.topic)}</small></div>${row ? `<b>${row.pts}</b>` : ''}</div>`;
+  }).join('');
   return h;
 }
 
 /* ---------- actions ---------- */
-async function write(fn,okMsg){
-  busy=true;render();
-  try{await fn();if(okMsg)toast(okMsg);return true}
-  catch(e){
-    const c=e&&e.code;
-    if(c==='permission-denied'){toast('אין הרשאה לשמור. בדוק את ה-Rules ב-Firebase.')}
-    else if(c==='unavailable'){toast('אין חיבור לאינטרנט. נסה שוב.')}
-    else if(c==='resource-exhausted')toast('הגעתם למכסה החינמית להיום. זה יתאפס מחר.');
+async function write(fn, okMsg) {
+  busy = true; render();
+  try { await fn(); if (okMsg) toast(okMsg); return true }
+  catch (e) {
+    const c = e && e.code;
+    if (c === 'permission-denied') toast('אין הרשאה לפעולה הזו.');
+    else if (c === 'unavailable') toast('אין חיבור לאינטרנט. נסה שוב.');
+    else if (c === 'resource-exhausted') toast('הגעתם למכסה החינמית להיום.');
     else toast('השמירה לא הצליחה. נסה שוב.');
     return false;
-  }finally{busy=false;render()}
+  } finally { busy = false; render() }
 }
+function onField(e) {
+  const f = e.target.dataset.f; if (!f) return;
+  const i = f.lastIndexOf('.'), k = f.slice(0, i), fld = f.slice(i + 1);
+  const o = D[k] || (D[k] = {});
+  o[fld] = e.target.type === 'checkbox' ? e.target.checked : e.target.tagName === 'SELECT' ? +e.target.value : e.target.value;
+}
+app.addEventListener('input', onField);
+app.addEventListener('change', onField);
+const maxOrder = () => S.topics.reduce((m, t) => Math.max(m, t.order || 0), 0);
+const topicOf = k => ({ text: (D[k].t || '').trim().slice(0, 90), metric2: (D[k].m || '').trim().slice(0, 50) || DEFAULT_M.m, funny: !!D[k].f });
 
-app.addEventListener('input',e=>{
-  const f=e.target.dataset.f;if(!f)return;const v=e.target.value;
-  if(f.startsWith('p.')){drafts.pick[view.rid][f.slice(2)]=v}
-  else if(f==='ph'||f==='rh')drafts[f]=+v;
-  else drafts[f]=v;
-});
-app.addEventListener('change',e=>{const f=e.target.dataset.f;if(f==='ph'||f==='rh')drafts[f]=+e.target.value});
-
-app.addEventListener('click',async e=>{
-  const b=e.target.closest('[data-act]');if(!b)return;
-  const a=b.dataset.act,v=b.dataset.v;
-  if(a==='go'){view={name:v,rid:null};render();scrollTo(0,0)}
-  else if(a==='open'){view={name:'round',rid:v};render();scrollTo(0,0)}
-  else if(a==='bm'){boardMode=v;render()}
-  else if(a==='sugg'){drafts.topic=v;render()}
-  else if(a==='savenick'){
-    const n=drafts.nick.trim();if(!n){toast('צריך שם');return}
-    await write(()=>db.doc('players/'+me).set({nick:n.slice(0,24),joined:now()}));
+app.addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+  const a = b.dataset.act, v = b.dataset.v;
+  if (a === 'go') { view = { name: v, v: null }; render(); scrollTo(0, 0) }
+  else if (a === 'open') { view = { name: 'round', v }; render(); scrollTo(0, 0) }
+  else if (a === 'prof') { view = { name: 'profile', v }; render(); scrollTo(0, 0) }
+  else if (a === 'bm') { boardMode = v; render() }
+  else if (a === 'sugg') { const s = SUGGEST.find(x => x.t === v); Object.assign(D.new, { t: s.t, m: s.m, f: s.f }); render() }
+  else if (a === 'metric') { const x = METRICS[+b.dataset.i]; Object.assign(D[b.dataset.k], { m: x.m, f: x.f }); render() }
+  else if (a === 'claim') { await write(() => db.doc('config/admin').set({ uid: me, at: now() }), 'אתה המנהל עכשיו') }
+  else if (a === 'savenick') {
+    const n = (D.nick.v || '').trim(); if (!n) { toast('צריך שם'); return }
+    await write(() => db.doc('players/' + me).set({ nick: n.slice(0, 24), joined: now() }));
   }
-  else if(a==='create'){
-    const t=drafts.topic.trim();if(!t){toast('צריך נושא');return}
-    const id='r'+now()+Math.random().toString(36).slice(2,6);const t0=now();
-    const pe=t0+drafts.ph*3600e3;
-    const ok=await write(()=>db.doc('rounds/'+id).set({topic:t.slice(0,90),by:me,createdAt:t0,pickEnds:pe,rateEnds:pe+drafts.rh*3600e3}),'הסבב נפתח. שלח לחברים!');
-    if(ok){drafts.topic='';view={name:'round',rid:id};render();scrollTo(0,0)}
+  else if (a === 'create') {
+    const t = topicOf('new'); if (!t.text) { toast('צריך נושא'); return }
+    const id = 'r' + now() + Math.random().toString(36).slice(2, 6), t0 = now(), pe = t0 + D.new.ph * 3600e3;
+    const ok = await write(() => db.doc('rounds/' + id).set({ topic: t.text, metric2: t.metric2, funny: t.funny, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + D.new.rh * 3600e3 }), 'הסבב נפתח');
+    if (ok) { delete D.new; view = { name: 'round', v: id }; render(); scrollTo(0, 0) }
   }
-  else if(a==='savepick'){
-    const r=S.rounds.find(x=>x.id===view.rid);if(!r||phase(r)!=='pick'){toast('זמן הבחירה נגמר');render();return}
-    const d=drafts.pick[r.id];const title=d.title.trim();
-    if(!title){toast('צריך שם שיר');return}
-    const url=d.url.trim();if(url&&!safeUrl(url)){toast('הלינק צריך להתחיל ב-https');return}
-    await write(()=>db.doc('picks/'+r.id+'__'+me).set({rid:r.id,uid:me,title:title.slice(0,80),artist:d.artist.trim().slice(0,60),url,at:now()}),'השיר נשמר');
+  else if (a === 'submittopic') {
+    const t = topicOf('sg'); if (!t.text) { toast('צריך נושא'); return }
+    const ok = await write(() => db.collection('topics').add({ ...t, by: me, status: 'pending', createdAt: now() }), 'נשלח למנהל לאישור');
+    if (ok) { delete D.sg; render() }
   }
-  else if(a==='rate'){
-    const d=drafts.rate[view.rid]||(drafts.rate[view.rid]={});
-    const u=b.dataset.u,k=b.dataset.k,n=+b.dataset.n;
-    d[u]={...(d[u]||{}),[k]:n};render();
+  else if (a === 'approve') {
+    const k = 'ed:' + v, t = topicOf(k); if (!t.text) { toast('צריך נושא'); return }
+    if (await write(() => db.doc('topics/' + v).update({ ...t, status: 'approved', order: maxOrder() + 1 }), 'נכנס לתור')) delete D[k];
   }
-  else if(a==='saverate'){
-    const r=S.rounds.find(x=>x.id===view.rid);if(!r||phase(r)!=='rate'){toast('זמן הדירוג נגמר');render();return}
-    const d=drafts.rate[r.id]||{};const clean={};
-    S.picks.filter(p=>p.rid===r.id&&p.uid!==me).forEach(p=>{if(d[p.uid])clean[p.uid]={fit:d[p.uid].fit||0,fun:d[p.uid].fun||0}});
-    drafts.rate[r.id]=JSON.parse(JSON.stringify(clean));
-    await write(()=>db.doc('ratings/'+r.id+'__'+me).set({rid:r.id,uid:me,scores:clean,at:now()}),'הדירוג נשמר');
+  else if (a === 'reject') { await write(() => db.doc('topics/' + v).update({ status: 'rejected' })) }
+  else if (a === 'addq') {
+    const t = topicOf('add'); if (!t.text) { toast('צריך נושא'); return }
+    if (await write(() => db.collection('topics').add({ ...t, by: me, status: 'approved', order: maxOrder() + 1, createdAt: now() }), 'נוסף לתור')) { delete D.add; render() }
   }
-  else if(a==='endpick'){
-    const r=S.rounds.find(x=>x.id===view.rid);if(!r)return;const t=now();
-    await write(()=>db.doc('rounds/'+r.id).update({pickEnds:t,rateEnds:t+(r.rateEnds-r.pickEnds)}),'שלב הדירוג התחיל');
+  else if (a === 'qmove') {
+    const Q = queue(), i = Q.findIndex(t => t.id === v), j = i + (+b.dataset.d);
+    if (i < 0 || j < 0 || j >= Q.length) return;
+    const ids = Q.map(t => t.id); [ids[i], ids[j]] = [ids[j], ids[i]];
+    await write(() => { const w = db.batch(); ids.forEach((id, n) => w.update(db.doc('topics/' + id), { order: n + 1 })); return w.commit() });
   }
-  else if(a==='endrate'){
-    const r=S.rounds.find(x=>x.id===view.rid);if(!r)return;
-    await write(()=>db.doc('rounds/'+r.id).update({rateEnds:now()}),'התוצאות נחשפו');
+  else if (a === 'qdel') { if (confirm('למחוק את הנושא מהתור?')) await write(() => db.doc('topics/' + v).delete()) }
+  else if (a === 'savesettings') {
+    const s = D.set;
+    await write(() => db.doc('config/settings').set({ startHour: s.sh, pickHours: s.ph, rateHours: s.rh }), 'נשמר');
   }
-  else if(a==='copylist'){
-    const r=S.rounds.find(x=>x.id===view.rid);if(!r)return;
-    const ps=S.picks.filter(p=>p.rid===r.id);
-    const txt=r.topic+'\n'+ps.map(p=>'• '+p.title+(p.artist?' / '+p.artist:'')+(safeUrl(p.url)?' '+safeUrl(p.url):'')).join('\n');
-    try{await navigator.clipboard.writeText(txt);toast('הרשימה הועתקה')}catch(_){toast('לא הצלחתי להעתיק במכשיר הזה')}
+  else if (a === 'savepick') {
+    const r = S.rounds.find(x => x.id === view.v); if (!r || phase(r) !== 'pick') { toast('זמן הבחירה נגמר'); render(); return }
+    const d = D['pk:' + r.id], title = (d.title || '').trim();
+    if (!title) { toast('צריך שם שיר'); return }
+    const url = (d.url || '').trim(); if (url && !safeUrl(url)) { toast('הלינק צריך להתחיל ב-https'); return }
+    await write(() => db.doc('picks/' + r.id + '__' + me).set({ rid: r.id, uid: me, title: title.slice(0, 80), artist: (d.artist || '').trim().slice(0, 60), url, at: now() }), 'השיר נשמר');
+  }
+  else if (a === 'rate') { const d = rateDraft[view.v]; const u = b.dataset.u; d.scores[u] = { ...(d.scores[u] || {}), [b.dataset.k]: +b.dataset.n }; render() }
+  else if (a === 'guess') { const d = rateDraft[view.v]; const u = b.dataset.u; d.guesses[u] = d.guesses[u] === b.dataset.g ? null : b.dataset.g; if (!d.guesses[u]) delete d.guesses[u]; render() }
+  else if (a === 'saverate') {
+    const r = S.rounds.find(x => x.id === view.v); if (!r || phase(r) !== 'rate') { toast('זמן הדירוג נגמר'); render(); return }
+    const d = rateDraft[r.id], scores = {}, guesses = {};
+    S.picks.filter(p => p.rid === r.id && p.uid !== me).forEach(p => {
+      if (d.scores[p.uid]) scores[p.uid] = { fit: d.scores[p.uid].fit || 0, fun: d.scores[p.uid].fun || 0 };
+      if (d.guesses[p.uid]) guesses[p.uid] = d.guesses[p.uid];
+    });
+    rateDraft[r.id] = { scores: JSON.parse(JSON.stringify(scores)), guesses: { ...guesses } };
+    await write(() => db.doc('ratings/' + r.id + '__' + me).set({ rid: r.id, uid: me, scores, guesses, at: now() }), 'נשמר');
+  }
+  else if (a === 'endpick') { const r = S.rounds.find(x => x.id === view.v); if (!r) return; const t = now(); await write(() => db.doc('rounds/' + r.id).update({ pickEnds: t, rateEnds: t + (r.rateEnds - r.pickEnds) }), 'שלב הדירוג התחיל') }
+  else if (a === 'endrate') { const r = S.rounds.find(x => x.id === view.v); if (!r) return; await write(() => db.doc('rounds/' + r.id).update({ rateEnds: now() }), 'התוצאות נחשפו') }
+  else if (a === 'copylist') {
+    const r = S.rounds.find(x => x.id === view.v); if (!r) return;
+    const ps = S.picks.filter(p => p.rid === r.id);
+    const txt = r.topic + '\n' + ps.map(p => '• ' + p.title + (p.artist ? ' / ' + p.artist : '') + (safeUrl(p.url) ? ' ' + safeUrl(p.url) : '')).join('\n');
+    try { await navigator.clipboard.writeText(txt); toast('הרשימה הועתקה') } catch (_) { toast('לא הצלחתי להעתיק במכשיר הזה') }
   }
 });
 
 /* ---------- clock ---------- */
-let lastSig='';
-setInterval(()=>{
-  document.querySelectorAll('[data-ends]').forEach(el=>el.textContent=fmtLeft(+el.dataset.ends-now()));
-  const sig=S.rounds.map(r=>r.id+phase(r)).join();
-  if(sig!==lastSig){lastSig=sig;if(ready)schedule()}
-},15000);
+let lastSig = '';
+setInterval(() => {
+  document.querySelectorAll('[data-ends]').forEach(el => el.textContent = fmtLeft(+el.dataset.ends - now()));
+  const sig = S.rounds.map(r => r.id + phase(r)).join();
+  if (sig !== lastSig) { lastSig = sig; if (ready) schedule() } else ensureToday();
+}, 15000);
 
 /* ---------- boot ---------- */
-(async()=>{
-  if(!window.firebase){fatal='לא הצלחתי לטעון את Firebase. בדוק חיבור לאינטרנט.';render();return}
-  if(!firebaseConfig.apiKey||firebaseConfig.apiKey==='PASTE_HERE'){fatal='צריך להדביק את firebaseConfig בקובץ (שלב 4 בהוראות).';render();return}
-  try{firebase.initializeApp(firebaseConfig)}catch(e){fatal='ה-firebaseConfig לא תקין.';render();return}
-  const auth=firebase.auth();
-  auth.onAuthStateChanged(u=>{
-    if(!u)return;
-    if(ready)return;
-    me=u.uid;db=firebase.firestore();ready=true;
-    const err=e=>{fatal='אין גישה לנתונים: '+(e&&e.code||'')+'. בדוק את ה-Rules ב-Firebase.';render()};
-    db.collection('rounds').onSnapshot(s=>{S.rounds=s.docs.map(x=>({id:x.id,...x.data()}));S.loaded.rounds=true;lastSig=S.rounds.map(r=>r.id+phase(r)).join();schedule()},err);
-    db.collection('picks').onSnapshot(s=>{S.picks=s.docs.map(x=>x.data());schedule()},err);
-    db.collection('ratings').onSnapshot(s=>{S.ratings=s.docs.map(x=>x.data());schedule()},err);
-    db.collection('players').onSnapshot(s=>{const m={};s.docs.forEach(x=>m[x.id]=x.data());S.players=m;S.loaded.players=true;schedule()},err);
+(async () => {
+  if (!window.firebase) { fatal = 'לא הצלחתי לטעון את Firebase. בדוק חיבור לאינטרנט.'; render(); return }
+  try { firebase.initializeApp(firebaseConfig) } catch (e) { fatal = 'ה-firebaseConfig לא תקין.'; render(); return }
+  const auth = firebase.auth();
+  auth.onAuthStateChanged(u => {
+    if (!u || ready) return;
+    me = u.uid; db = firebase.firestore(); ready = true;
+    const err = e => { fatal = 'אין גישה לנתונים (' + (e && e.code || '') + '). בדוק את ה-Rules ב-Firebase.'; render() };
+    db.collection('rounds').onSnapshot(s => { S.rounds = s.docs.map(x => ({ id: x.id, ...x.data() })); S.loaded.rounds = true; lastSig = S.rounds.map(r => r.id + phase(r)).join(); schedule() }, err);
+    db.collection('picks').onSnapshot(s => { S.picks = s.docs.map(x => x.data()); schedule() }, err);
+    db.collection('ratings').onSnapshot(s => { S.ratings = s.docs.map(x => x.data()); schedule() }, err);
+    db.collection('players').onSnapshot(s => { const m = {}; s.docs.forEach(x => m[x.id] = x.data()); S.players = m; S.loaded.players = true; schedule() }, err);
+    db.collection('topics').onSnapshot(s => { S.topics = s.docs.map(x => ({ id: x.id, ...x.data() })); S.loaded.topics = true; schedule() }, err);
+    db.doc('config/admin').onSnapshot(s => { S.admin = s.exists ? s.data().uid : null; S.loaded.admin = true; schedule() }, err);
+    db.doc('config/settings').onSnapshot(s => { if (s.exists) S.settings = { ...S.settings, ...s.data() }; S.loaded.settings = true; delete D.set; schedule() }, err);
     render();
   });
-  try{await auth.signInAnonymously()}
-  catch(e){fatal='ההתחברות נכשלה ('+(e&&e.code||'')+'). ודא שהפעלת Anonymous ב-Authentication (שלב 2).';render()}
+  try { await auth.signInAnonymously() }
+  catch (e) { fatal = 'ההתחברות נכשלה (' + (e && e.code || '') + ').'; render() }
 })();
 </script>
 </body>
