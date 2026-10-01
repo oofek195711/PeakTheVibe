@@ -6,7 +6,15 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#E83E72">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>שיר לנושא</title>
+<meta property="og:title" content="PeakTheVibe">
+<meta property="og:site_name" content="PeakTheVibe">
+<meta property="og:description" content="כל יום נושא חדש. בוחרים שיר, מדרגים, ומי שבחר הכי טוב לוקח.">
+<meta property="og:type" content="website">
+<meta name="description" content="כל יום נושא חדש. בוחרים שיר, מדרגים, ומי שבחר הכי טוב לוקח.">
+<meta name="apple-mobile-web-app-title" content="PeakTheVibe">
+<meta name="application-name" content="PeakTheVibe">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%A7%3C/text%3E%3C/svg%3E">
+<title>PeakTheVibe</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Karantina:wght@400;700&family=Assistant:wght@400;600;800&display=swap" rel="stylesheet">
@@ -17,6 +25,7 @@
 :root{
   --bg:#ECE6F7;--surface:#FFFFFF;--ink:#241B3F;--muted:#6B6187;--line:#D6CDEB;
   --pink:#E83E72;--pink-ink:#FFFFFF;--mint:#12A26D;--chip:#E0D7F3;--warn:#B8561B;
+  --notes:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cg fill='%23241B3F' fill-opacity='.07'%3E%3Cg transform='translate(34 70) rotate(-14)'%3E%3Cellipse rx='8' ry='5.5' transform='rotate(-22)'/%3E%3Crect x='5.6' y='-34' width='2.4' height='34'/%3E%3Cpath d='M8 -34q12 7 9 21q-3-9-9-12z'/%3E%3C/g%3E%3Cg transform='translate(130 46) rotate(10)'%3E%3Cellipse rx='7' ry='5' transform='rotate(-22)'/%3E%3Cellipse cx='26' cy='-4' rx='7' ry='5' transform='rotate(-22 26 -4)'/%3E%3Crect x='4.8' y='-30' width='2.2' height='30'/%3E%3Crect x='30.8' y='-34' width='2.2' height='30'/%3E%3Cpath d='M4.8 -30L33 -34v5L4.8 -25z'/%3E%3C/g%3E%3Cg transform='translate(92 160) rotate(8)'%3E%3Cellipse rx='7.5' ry='5.2' transform='rotate(-22)'/%3E%3Crect x='5.2' y='-32' width='2.3' height='32'/%3E%3C/g%3E%3Cg transform='translate(186 168) rotate(-20) scale(.75)'%3E%3Cellipse rx='8' ry='5.5' transform='rotate(-22)'/%3E%3Crect x='5.6' y='-34' width='2.4' height='34'/%3E%3Cpath d='M8 -34q12 7 9 21q-3-9-9-12z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
@@ -25,15 +34,17 @@
   :root:not([data-theme="light"]){
     --bg:#17122A;--surface:#231B3B;--ink:#F2EDFF;--muted:#A99FCB;--line:#3A2F5E;
     --pink:#FF6B98;--pink-ink:#1A0F22;--mint:#4BE0A3;--chip:#30264F;--warn:#F5A26B;
+    --notes:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cg fill='%23F2EDFF' fill-opacity='.07'%3E%3Cg transform='translate(34 70) rotate(-14)'%3E%3Cellipse rx='8' ry='5.5' transform='rotate(-22)'/%3E%3Crect x='5.6' y='-34' width='2.4' height='34'/%3E%3Cpath d='M8 -34q12 7 9 21q-3-9-9-12z'/%3E%3C/g%3E%3Cg transform='translate(130 46) rotate(10)'%3E%3Cellipse rx='7' ry='5' transform='rotate(-22)'/%3E%3Cellipse cx='26' cy='-4' rx='7' ry='5' transform='rotate(-22 26 -4)'/%3E%3Crect x='4.8' y='-30' width='2.2' height='30'/%3E%3Crect x='30.8' y='-34' width='2.2' height='30'/%3E%3Cpath d='M4.8 -30L33 -34v5L4.8 -25z'/%3E%3C/g%3E%3Cg transform='translate(92 160) rotate(8)'%3E%3Cellipse rx='7.5' ry='5.2' transform='rotate(-22)'/%3E%3Crect x='5.2' y='-32' width='2.3' height='32'/%3E%3C/g%3E%3Cg transform='translate(186 168) rotate(-20) scale(.75)'%3E%3Cellipse rx='8' ry='5.5' transform='rotate(-22)'/%3E%3Crect x='5.6' y='-34' width='2.4' height='34'/%3E%3Cpath d='M8 -34q12 7 9 21q-3-9-9-12z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   }
 }
 :root[data-theme="dark"]{
   --bg:#17122A;--surface:#231B3B;--ink:#F2EDFF;--muted:#A99FCB;--line:#3A2F5E;
   --pink:#FF6B98;--pink-ink:#1A0F22;--mint:#4BE0A3;--chip:#30264F;--warn:#F5A26B;
+    --notes:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cg fill='%23F2EDFF' fill-opacity='.07'%3E%3Cg transform='translate(34 70) rotate(-14)'%3E%3Cellipse rx='8' ry='5.5' transform='rotate(-22)'/%3E%3Crect x='5.6' y='-34' width='2.4' height='34'/%3E%3Cpath d='M8 -34q12 7 9 21q-3-9-9-12z'/%3E%3C/g%3E%3Cg transform='translate(130 46) rotate(10)'%3E%3Cellipse rx='7' ry='5' transform='rotate(-22)'/%3E%3Cellipse cx='26' cy='-4' rx='7' ry='5' transform='rotate(-22 26 -4)'/%3E%3Crect x='4.8' y='-30' width='2.2' height='30'/%3E%3Crect x='30.8' y='-34' width='2.2' height='30'/%3E%3Cpath d='M4.8 -30L33 -34v5L4.8 -25z'/%3E%3C/g%3E%3Cg transform='translate(92 160) rotate(8)'%3E%3Cellipse rx='7.5' ry='5.2' transform='rotate(-22)'/%3E%3Crect x='5.2' y='-32' width='2.3' height='32'/%3E%3C/g%3E%3Cg transform='translate(186 168) rotate(-20) scale(.75)'%3E%3Cellipse rx='8' ry='5.5' transform='rotate(-22)'/%3E%3Crect x='5.6' y='-34' width='2.4' height='34'/%3E%3Cpath d='M8 -34q12 7 9 21q-3-9-9-12z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Assistant",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-size:17px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg) var(--notes) repeat fixed;background-size:220px 220px;min-height:100vh;color:var(--ink);font-family:"Assistant",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-size:17px;line-height:1.5;-webkit-tap-highlight-color:transparent}
 button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--pink);outline-offset:2px}
@@ -257,7 +268,7 @@ function nav(){
 
 function render(){
   pending=false;
-  if(fatal){app.innerHTML=`<div class="empty"><div class="display">שיר לנושא</div><p class="muted">${esc(fatal)}</p></div>`;return}
+  if(fatal){app.innerHTML=`<div class="empty"><div class="display">PeakTheVibe</div><p class="muted">${esc(fatal)}</p></div>`;return}
   if(!ready||!S.loaded.players||!S.loaded.rounds){app.innerHTML='<p class="muted" style="padding-top:40px;text-align:center">טוען…</p>';return}
   if(!S.players[me]&&canWrite){app.innerHTML=nickView();return}
   const ro=canWrite?'':`<div class="banner">משהו בהרשאות לא מוגדר נכון. בדוק את ה-Rules ב-Firebase (שלב 3 בהוראות).</div>`;
@@ -271,7 +282,7 @@ function render(){
 function phaseOf(){const r=S.rounds.find(x=>x.id===view.rid);return r?phase(r):null}
 
 function nickView(){
-  return `<div style="padding-top:40px"><div class="display" style="font-size:64px;margin-bottom:10px">שיר לנושא</div>
+  return `<div style="padding-top:40px"><div class="display" style="font-size:64px;margin-bottom:10px">PeakTheVibe</div>
   <p>כל יום נושא חדש. בוחרים שיר שמתאים, מדרגים את השירים של כולם, ומי שבחר הכי טוב לוקח.</p>
   <div class="panel" style="margin-top:22px"><label class="f" for="nick">איך יקראו לך במשחק?</label>
   <input id="nick" class="field" data-f="nick" maxlength="24" value="${esc(drafts.nick)}" placeholder="למשל: דנה">
@@ -281,7 +292,7 @@ function nickView(){
 function homeView(){
   const open=S.rounds.filter(r=>phase(r)!=='done').sort((a,b)=>(phase(a)==='pick'?a.pickEnds:a.rateEnds)-(phase(b)==='pick'?b.pickEnds:b.rateEnds));
   const done=S.rounds.filter(r=>phase(r)==='done').sort((a,b)=>b.rateEnds-a.rateEnds);
-  const head=`<div class="brand"><span class="display">שיר לנושא</span><small>שלום, ${esc(nameOf(me))}</small></div>`;
+  const head=`<div class="brand"><span class="display">PeakTheVibe</span><small>שלום, ${esc(nameOf(me))}</small></div>`;
   if(!S.rounds.length) return head+`<div class="empty"><div class="display">עוד אין נושא</div><p class="muted">פתח את הסבב הראשון ושלח את הלינק לחברים.</p>${canWrite?'<button class="btn" data-act="go" data-v="new">פתח נושא</button>':''}</div>`;
   const row=r=>{
     const ph=phase(r);const picks=S.picks.filter(p=>p.rid===r.id);
