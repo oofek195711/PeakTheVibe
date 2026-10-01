@@ -186,6 +186,19 @@ button.lb:first-of-type .rk{color:var(--pink)}
 .stat small{color:var(--muted);font-size:13px;font-weight:700}
 .badges{display:flex;flex-wrap:wrap;gap:8px;margin:-6px 0 16px}
 .badge{background:var(--ink);color:var(--bg);border-radius:999px;padding:6px 12px;font-weight:800;font-size:14px}
+
+.logo{display:inline-block;width:36px;height:36px;border-radius:24%;overflow:hidden;flex:none;vertical-align:middle;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.logo img{width:100%;height:100%;display:block;transform:scale(1.09)}
+.logo.big{width:132px;height:132px;border-radius:26%}
+.bname{display:inline-flex;align-items:center;gap:10px}
+.foot{text-align:center;font-size:12px;color:var(--muted);padding:28px 0 8px}
+.track{background:var(--surface);border-radius:18px;padding:14px}
+.tcount{display:flex;gap:14px;font-weight:800;font-size:17px;margin-bottom:6px;flex-wrap:wrap}
+.tg{margin-top:8px}.tg small{font-weight:800;color:var(--muted);font-size:13px}.tg div{font-weight:600}
+.lockcard{text-align:center}.lockcard .lk{font-size:34px}.lockcard .t{font-weight:800;font-size:20px;margin-top:6px}
+.savebar .btn{padding:10px 16px}
+.dots button:disabled,.chips button:disabled{opacity:.6}
+.dots button.on:disabled,.chips button.on:disabled{opacity:1}
 </style>
 </head>
 <body>
@@ -231,7 +244,7 @@ const SUGGEST = [
 
 let db = null, me = null, ready = false, fatal = null;
 const S = { rounds: [], picks: [], ratings: [], players: {}, topics: [], admin: null,
-  settings: { startHour: 10, pickHours: 24, rateHours: 24 }, loaded: {} };
+  settings: { startHour: 10, pickHours: 24, rateHours: 24, inactive: [] }, loaded: {} };
 let view = { name: 'home', v: null };
 let boardMode = 'week';
 const D = {};
@@ -370,6 +383,47 @@ function streak(uid) {
   return s;
 }
 
+/* ---------- players / tracking ---------- */
+const inactiveSet = () => new Set(S.settings.inactive || []);
+const activeIds = () => { const x = inactiveSet(); return Object.keys(S.players).filter(u => !x.has(u)) };
+const seenMarked = {};
+function markSeen(rid) {
+  if (seenMarked[rid] || !S.players[me]) return;
+  const s = S.players[me].seen; seenMarked[rid] = 1;
+  if (s && s[rid]) return;
+  db.doc('players/' + me).update(new firebase.firestore.FieldPath('seen', rid), now()).catch(() => { seenMarked[rid] = 0 });
+}
+function roundStatus(r) {
+  const ph = phase(r), act = activeIds();
+  const picks = S.picks.filter(p => p.rid === r.id), rats = S.ratings.filter(x => x.rid === r.id);
+  const seen = u => !!(S.players[u] && S.players[u].seen && S.players[u].seen[r.id]);
+  if (ph === 'pick') {
+    const st = u => { const p = picks.find(x => x.uid === u); if (p) return p.locked ? 'locked' : 'draft'; return seen(u) ? 'seen' : 'none' };
+    const ids = [...new Set([...act, ...picks.map(p => p.uid)])];
+    const groups = [['locked', '🔒', 'נעלו'], ['draft', '✏️', 'בטיוטה'], ['seen', '👀', 'נכנסו ועוד לא בחרו'], ['none', '💤', 'עוד לא נכנסו']].map(([k, ic, l]) => ({ ic, l, u: ids.filter(u => st(u) === k) }));
+    const n = act.filter(u => st(u) === 'locked').length;
+    return { groups, all: act.length > 0 && n === act.length, short: `🔒 ${n}/${act.length}`, ph };
+  }
+  const pickers = picks.map(p => p.uid);
+  const ids = [...new Set([...act, ...pickers, ...rats.map(x => x.uid)])];
+  const st = u => { const x = rats.find(y => y.uid === u); return x ? (x.locked ? 'locked' : 'draft') : 'none' };
+  const groups = [['locked', '🔒', 'נעלו דירוג'], ['draft', '✏️', 'דירגו בטיוטה'], ['none', '💤', 'עוד לא דירגו']].map(([k, ic, l]) => ({ ic, l, u: ids.filter(u => st(u) === k) }));
+  const n = pickers.filter(u => st(u) === 'locked').length;
+  return { groups, all: pickers.length > 0 && n === pickers.length, short: `🔒 ${n}/${pickers.length}`, ph, pickers: new Set(pickers) };
+}
+function trackerHtml(r) {
+  const t = roundStatus(r);
+  return `<div class="track"><div class="tcount">${t.groups.map(g => `<span>${g.ic} ${g.u.length}</span>`).join('')}</div>
+  ${t.groups.filter(g => g.u.length).map(g => `<div class="tg"><small>${g.ic} ${g.l}</small><div>${g.u.map(u => esc(nameOf(u)) + (t.ph === 'rate' && !t.pickers.has(u) ? ' <span class="muted">(לא בחר/ה שיר)</span>' : '')).join(', ')}</div></div>`).join('')}
+  ${t.ph === 'rate' ? '<p class="hint" style="margin:6px 0 0">"כולם נעלו" נבדק רק אצל מי שבחר שיר.</p>' : ''}</div>`;
+}
+function fallbackTopic(seed) {
+  const used = new Set(S.rounds.map(r => r.topic));
+  const pool = SUGGEST.filter(s => !used.has(s.t)), list = pool.length ? pool : SUGGEST;
+  const s = list[hash(seed) % list.length];
+  return { topic: s.t, metric2: s.m, funny: s.f };
+}
+
 /* ---------- topic queue + daily rounds ---------- */
 const queue = () => S.topics.filter(t => t.status === 'approved').sort((a, b) => (a.order || 0) - (b.order || 0));
 const pendingTopics = () => S.topics.filter(t => t.status === 'pending').sort((a, b) => a.createdAt - b.createdAt);
@@ -391,9 +445,7 @@ async function ensureToday() {
   let topic, metric2, funny, tref = null;
   if (head) { topic = head.text; metric2 = head.metric2 || DEFAULT_M.m; funny = head.funny !== false; tref = db.doc('topics/' + head.id) }
   else {
-    const used = new Set(S.rounds.map(r => r.topic));
-    const pool = SUGGEST.filter(s => !used.has(s.t)); const list = pool.length ? pool : SUGGEST;
-    const s = list[hash(id) % list.length]; topic = s.t; metric2 = s.m; funny = s.f;
+    ({ topic, metric2, funny } = fallbackTopic(id));
   }
   const pe = st + S.settings.pickHours * 3600e3;
   const rref = db.doc('rounds/' + id);
@@ -426,28 +478,30 @@ function nav() {
 }
 function render() {
   pending = false;
-  if (fatal) { app.innerHTML = `<div class="empty"><div class="display">PeakTheVibe</div><p class="muted">${esc(fatal)}</p></div>`; return }
+  if (fatal) { app.innerHTML = `<div class="empty">${LOGO('big')}<div class="display" style="margin-top:14px">PeakTheVibe</div><p class="muted">${esc(fatal)}</p></div>`; return }
   const L = S.loaded;
   if (!ready || !L.players || !L.rounds || !L.topics || !L.admin || !L.settings) { app.innerHTML = '<p class="muted" style="padding-top:40px;text-align:center">טוען…</p>'; return }
   if (!S.players[me]) { app.innerHTML = nickView(); return }
   let body = '', rateBar = false;
   const v = view.name;
-  if (v === 'round') { const r = S.rounds.find(x => x.id === view.v); if (r) { body = roundView(r); rateBar = phase(r) === 'rate' } else body = homeView() }
+  if (v === 'round') { const r = S.rounds.find(x => x.id === view.v); if (r) { body = roundView(r); rateBar = body.includes('class="savebar"') } else body = homeView() }
   else if (v === 'new' && isAdmin()) body = newView();
   else if (v === 'admin' && isAdmin()) body = adminView();
   else if (v === 'suggest') body = suggestView();
   else if (v === 'board') body = boardView();
   else if (v === 'profile') body = profileView(view.v);
   else body = homeView();
-  app.innerHTML = body + (rateBar ? '' : nav());
+  app.innerHTML = body + FOOT + (rateBar ? '' : nav());
 }
+const LOGO = (cls) => `<span class="logo ${cls || ''}"><img src="PeakTheVibeLogo.png" alt=""></span>`;
+const FOOT = `<footer class="foot">© ${new Date().getFullYear()} PeakTheVibe. כל הזכויות שמורות לאופק טלקר.</footer>`;
 function nickView() {
   const d = draft('nick', () => ({ v: '' }));
-  return `<div style="padding-top:40px"><div class="display" style="font-size:64px;margin-bottom:10px">PeakTheVibe</div>
+  return `<div style="padding-top:24px;text-align:center">${LOGO('big')}<div class="display" style="font-size:64px;margin:14px 0 10px">PeakTheVibe</div></div><div>
   <p>כל יום נושא חדש. בוחרים שיר שמתאים, מדרגים את השירים של כולם, מנחשים מי בחר מה, ומי שבחר הכי טוב לוקח.</p>
   <div class="panel" style="margin-top:22px"><label class="f" for="nick">איך יקראו לך במשחק?</label>
   <input id="nick" class="field" data-f="nick.v" maxlength="24" value="${esc(d.v)}" placeholder="למשל: נגה">
-  <button class="btn block" data-act="savenick">יאללה, נכנסים</button></div></div>`;
+  <button class="btn block" data-act="savenick">יאללה, נכנסים</button></div></div>${FOOT}`;
 }
 function metricPicker(key) {
   const d = D[key];
@@ -459,7 +513,7 @@ function metricPicker(key) {
 function homeView() {
   const open = S.rounds.filter(r => phase(r) !== 'done').sort((a, b) => (phase(a) === 'pick' ? a.pickEnds : a.rateEnds) - (phase(b) === 'pick' ? b.pickEnds : b.rateEnds));
   const done = doneRounds().sort((a, b) => b.rateEnds - a.rateEnds);
-  let head = `<div class="brand"><span class="display">PeakTheVibe</span><button class="linkbtn" data-act="prof" data-v="${esc(me)}">${esc(nameOf(me))}</button></div>`;
+  let head = `<div class="brand"><span class="bname">${LOGO()}<span class="display">PeakTheVibe</span></span><button class="linkbtn" data-act="prof" data-v="${esc(me)}">${esc(nameOf(me))}</button></div>`;
   if (wantAdmin && !S.admin) head += `<div class="banner">עוד אין מנהל למשחק. <button class="btn" style="min-height:40px;margin-top:8px" data-act="claim">הפוך אותי למנהל</button></div>`;
   const nt = nextAutoTime();
   const nextLine = `<p class="hint" style="margin:0 0 6px">הנושא הבא נפתח ${new Date(nt).toDateString() === new Date().toDateString() ? 'היום' : 'מחר'} ב-${hh(S.settings.startHour)}.</p>`;
@@ -471,7 +525,8 @@ function homeView() {
     if (ph === 'pick') { pill = '<span class="pill pick">בוחרים</span>'; c = 'var(--pink)'; info = `<span data-ends="${r.pickEnds}">${fmtLeft(r.pickEnds - now())}</span> לבחירה`; if (!mine) pill += ' <span class="pill">עוד לא בחרת</span>' }
     else if (ph === 'rate') { pill = '<span class="pill rate">מדרגים</span>'; c = 'var(--mint)'; info = `<span data-ends="${r.rateEnds}">${fmtLeft(r.rateEnds - now())}</span> לדירוג`; if (!rated) pill += ' <span class="pill">חסר הדירוג שלך</span>' }
     else { const w = roundData(r).rows[0]; pill = '<span class="pill">תוצאות</span>'; info = w && w.pts > 0 ? 'ניצח/ה: ' + esc(nameOf(w.uid)) : 'אין ניקוד'; c = 'var(--line)' }
-    return `<button class="round" style="--c:${c}" data-act="open" data-v="${esc(r.id)}"><span class="display">${esc(r.topic)}</span><span class="meta"><span>${pill}</span><span>${info}</span></span><span class="meta" style="margin-top:4px"><span>${picks.length} שירים</span><span>${fmtDate(r.createdAt)}</span></span></button>`;
+    const cnt = isAdmin() && ph !== 'done' ? roundStatus(r).short : picks.length + ' שירים';
+    return `<button class="round" style="--c:${c}" data-act="open" data-v="${esc(r.id)}"><span class="display">${esc(r.topic)}</span><span class="meta"><span>${pill}</span><span>${info}</span></span><span class="meta" style="margin-top:4px"><span>${cnt}</span><span>${fmtDate(r.createdAt)}</span></span></button>`;
   };
   return head + nextLine + (open.length ? `<h2>פתוחים עכשיו</h2>` + open.map(row).join('') : '') + (done.length ? `<h2>הסתיימו</h2>` + done.map(row).join('') : '');
 }
@@ -529,7 +584,11 @@ function adminView() {
   <div class="two"><div><label class="f">זמן לבחירה</label><select class="field" data-f="set.ph">${hoursOpt(s.ph)}</select></div><div><label class="f">זמן לדירוג</label><select class="field" data-f="set.rh">${hoursOpt(s.rh)}</select></div></div>
   <button class="btn block" data-act="savesettings">שמור הגדרות</button>
   <p class="hint" style="margin:10px 0 0">השינוי חל מהסבב הבא.</p></div>
-  <div class="row-actions"><button class="btn ghost block" data-act="go" data-v="new">פתח סבב מיידי עם נושא משלך</button></div>`;
+  <div class="row-actions"><button class="btn block" data-act="nextnow">פתח עכשיו את הנושא הבא בתור</button><button class="btn ghost block" data-act="go" data-v="new">פתח סבב מיידי עם נושא משלך</button></div>`;
+  const ina = inactiveSet(), pl = Object.entries(S.players).sort((a, b) => (a[1].joined || 0) - (b[1].joined || 0));
+  h += `<h2>שחקנים (${pl.length - pl.filter(([u]) => ina.has(u)).length} פעילים מתוך ${pl.length})</h2>
+  <p class="hint" style="margin:0 0 8px">שחקן לא פעיל לא נספר במונה "כולם נעלו". אם יבחר שיר, ישחק כרגיל.</p>`;
+  h += pl.map(([u, p]) => `<div class="qrow"><div class="qt">${esc(p.nick)}${u === me ? ' (את/ה)' : ''}<small>הצטרף/ה ${p.joined ? fmtDate(p.joined) : ''}, ${S.picks.filter(x => x.uid === u).length} שירים</small></div><button class="btn ${ina.has(u) ? 'ghost' : ''}" style="min-height:40px;padding:6px 14px;font-size:14px" data-act="toggleactive" data-v="${esc(u)}">${ina.has(u) ? 'לא פעיל' : 'פעיל'}</button></div>`).join('');
   return h;
 }
 function steps(ph) {
@@ -544,13 +603,19 @@ function roundView(r) {
     const mine = picks.find(p => p.uid === me), k = 'pk:' + r.id;
     const d = draft(k, () => mine ? { title: mine.title, artist: mine.artist || '', url: mine.url || '' } : { title: '', artist: '', url: '' });
     h += `<div class="clock">נשארו <b data-ends="${r.pickEnds}">${fmtLeft(r.pickEnds - now())}</b> לבחירה. ${picks.length} כבר בחרו.</div>${legend}`;
-    h += `<div class="panel">${mine ? `<div class="mine"><b>הבחירה שלך:</b> ${esc(mine.title)}${mine.artist ? ' / ' + esc(mine.artist) : ''}<div class="hint" style="margin:4px 0 0">אפשר לשנות עד סוף זמן הבחירה.</div></div>` : ''}
+    markSeen(r.id);
+    if (mine && mine.locked) h += `<div class="panel lockcard"><div class="lk">🔒</div><b>הבחירה שלך נעולה</b><div class="t">${esc(mine.title)}</div><div class="muted">${esc(mine.artist || '')}</div></div>`;
+    else h += `<div class="panel">${mine ? `<div class="mine"><b>טיוטה שמורה:</b> ${esc(mine.title)}${mine.artist ? ' / ' + esc(mine.artist) : ''}<div class="hint" style="margin:4px 0 0">אפשר לשנות עד שנועלים. טיוטה שלא ננעלה נספרת בסוף הזמן.</div></div>` : ''}
       <label class="f" for="pt">שם השיר</label><input id="pt" class="field" data-f="${k}.title" maxlength="80" value="${esc(d.title)}">
       <label class="f" for="pa">אמן</label><input id="pa" class="field" data-f="${k}.artist" maxlength="60" value="${esc(d.artist)}">
       <label class="f" for="pu">לינק (לא חובה)</label><input id="pu" class="field" data-f="${k}.url" inputmode="url" dir="ltr" value="${esc(d.url)}" placeholder="Spotify / Apple Music / YouTube">
       <p class="hint">מדביקים לינק מכל אפליקציה. כל אחד יוכל לפתוח את השיר באפליקציה שלו.</p>
-      <button class="btn block" data-act="savepick" ${busy ? 'disabled' : ''}>${mine ? 'עדכן בחירה' : 'שלח את השיר'}</button></div>`;
-    if (adm && picks.length >= 2) h += `<div class="row-actions"><button class="btn ghost block" data-act="endpick">כולם בחרו? התחל דירוג עכשיו</button></div>`;
+      <div class="row-actions" style="margin-top:0"><button class="btn ghost" style="flex:1" data-act="savepick" ${busy ? 'disabled' : ''}>שמור טיוטה</button><button class="btn" style="flex:1" data-act="lockpick" ${busy ? 'disabled' : ''}>נעל בחירה 🔒</button></div></div>`;
+    if (adm) {
+      const st = roundStatus(r);
+      h += `<h2>מעקב (רק למנהל)</h2>` + trackerHtml(r);
+      if (picks.length >= 2) h += `<div class="row-actions"><button class="btn ${st.all ? '' : 'ghost'} block" data-act="endpick">${st.all ? '✓ כולם נעלו. התחל דירוג עכשיו' : 'התחל דירוג עכשיו בכל זאת'}</button></div>`;
+    }
     h += `<p class="hint" style="margin-top:14px">בשלב הדירוג השירים מוצגים בלי שמות, וכל אחד מנחש מי בחר מה. ניחוש נכון שווה נקודת בונוס.</p>`;
   }
   else if (ph === 'rate') {
@@ -562,22 +627,26 @@ function roundView(r) {
     const others = order.filter(p => p.uid !== me);
     const cands = picks.map(p => p.uid).filter(u => u !== me).sort((a, b) => nameOf(a).localeCompare(nameOf(b), 'he'));
     const doneN = others.filter(p => d.scores[p.uid] && d.scores[p.uid].fit && d.scores[p.uid].fun).length;
+    const locked = !!sd.locked, dis = locked ? 'disabled' : '';
     const dirty = JSON.stringify(d) !== JSON.stringify(saved);
     h += `<div class="clock">נשארו <b data-ends="${r.rateEnds}">${fmtLeft(r.rateEnds - now())}</b> לדירוג. מי שבחר/ה שיר ולא דירג/ה את כולם לא מקבל/ת נקודות על השיר.</div>`;
+    if (locked) h += `<div class="banner">🔒 הדירוג שלך נעול. התוצאות ייחשפו בסוף הזמן.</div>`;
     h += `<div class="playlist">${playlistHead(order)}`;
     h += order.map(p => {
       if (p.uid === me) return `<div class="song self"><div class="t">${esc(p.title)}</div><div class="a">${esc(p.artist)}</div><div class="hint" style="margin:6px 0 0">השיר שלך, לא מדרגים אותו</div></div>`;
       const v = d.scores[p.uid] || {};
-      const dots = k => [1, 2, 3, 4, 5].map(n => `<button class="${v[k] === n ? 'on' : ''}" data-act="rate" data-u="${esc(p.uid)}" data-k="${k}" data-n="${n}" aria-label="${n}">${n}</button>`).join('');
-      const gs = cands.length > 1 ? `<div class="scale"><span>🕵️ מי בחר את השיר? (בונוס)</span><div class="chips guess">${cands.map(u => `<button class="${d.guesses[p.uid] === u ? 'on' : ''}" data-act="guess" data-u="${esc(p.uid)}" data-g="${esc(u)}">${esc(nameOf(u))}</button>`).join('')}</div></div>` : '';
+      const dots = k => [1, 2, 3, 4, 5].map(n => `<button class="${v[k] === n ? 'on' : ''}" data-act="rate" data-u="${esc(p.uid)}" data-k="${k}" data-n="${n}" aria-label="${n}" ${dis}>${n}</button>`).join('');
+      const gs = cands.length > 1 ? `<div class="scale"><span>🕵️ מי בחר את השיר? (בונוס)</span><div class="chips guess">${cands.map(u => `<button class="${d.guesses[p.uid] === u ? 'on' : ''}" data-act="guess" data-u="${esc(p.uid)}" data-g="${esc(u)}" ${dis}>${esc(nameOf(u))}</button>`).join('')}</div></div>` : '';
       return `<div class="song"><div class="t">${esc(p.title)}</div><div class="a">${esc(p.artist)}</div>${linksHtml(p)}
       <div class="scale"><span>🎯 כמה מתאים לנושא</span><div class="dots">${dots('fit')}</div></div>
       <div class="scale"><span>✨ ${esc(m2of(r))}</span><div class="dots fun">${dots('fun')}</div></div>${gs}</div>`;
     }).join('') + '</div>';
-    if (adm) h += `<div class="row-actions"><button class="btn ghost block" data-act="endrate">כולם דירגו? חשוף תוצאות עכשיו</button></div>`;
+    if (adm) {
+      const st = roundStatus(r);
+      h += `<h2>מעקב (רק למנהל)</h2>` + trackerHtml(r) + `<div class="row-actions"><button class="btn ${st.all ? '' : 'ghost'} block" data-act="endrate">${st.all ? '✓ כולם נעלו. חשוף תוצאות עכשיו' : 'חשוף תוצאות עכשיו בכל זאת'}</button></div>`;
+    }
     h += `<div style="height:70px"></div>`;
-    if (others.length) h += `<div class="savebar"><div class="in"><div class="prog">דירגת ${doneN} מתוך ${others.length}</div><button class="btn" data-act="saverate" ${(!dirty || busy) ? 'disabled' : ''}>${dirty ? 'שמור' : 'נשמר'}</button></div></div>`;
-    else h += nav();
+    if (others.length && !locked) h += `<div class="savebar"><div class="in"><div class="prog">דירגת ${doneN} מתוך ${others.length}</div><button class="btn ghost" data-act="saverate" ${(!dirty || busy) ? 'disabled' : ''}>${dirty ? 'שמור' : 'נשמר'}</button><button class="btn" data-act="lockrate" ${(doneN < others.length || busy) ? 'disabled' : ''}>נעל 🔒</button></div></div>`;
   }
   else {
     const rd = roundData(r), rows = rd.rows;
@@ -703,26 +772,42 @@ app.addEventListener('click', async e => {
   else if (a === 'qdel') { if (confirm('למחוק את הנושא מהתור?')) await write(() => db.doc('topics/' + v).delete()) }
   else if (a === 'savesettings') {
     const s = D.set;
-    await write(() => db.doc('config/settings').set({ startHour: s.sh, pickHours: s.ph, rateHours: s.rh }), 'נשמר');
+    await write(() => db.doc('config/settings').set({ startHour: s.sh, pickHours: s.ph, rateHours: s.rh }, { merge: true }), 'נשמר');
   }
-  else if (a === 'savepick') {
+  else if (a === 'toggleactive') {
+    const F = firebase.firestore.FieldValue, isIn = inactiveSet().has(v);
+    await write(() => db.doc('config/settings').set({ inactive: isIn ? F.arrayRemove(v) : F.arrayUnion(v) }, { merge: true }));
+  }
+  else if (a === 'nextnow') {
+    const head = queue()[0];
+    const t = head ? { topic: head.text, metric2: head.metric2 || DEFAULT_M.m, funny: head.funny !== false } : fallbackTopic('n' + now());
+    if (!confirm('לפתוח עכשיו סבב עם הנושא: "' + t.topic + '"?')) return;
+    const id = 'r' + now() + Math.random().toString(36).slice(2, 6), t0 = now(), pe = t0 + S.settings.pickHours * 3600e3;
+    const ok = await write(() => { const w = db.batch(); w.set(db.doc('rounds/' + id), { ...t, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 }); if (head) w.update(db.doc('topics/' + head.id), { status: 'used', usedOn: id }); return w.commit() }, 'הסבב נפתח');
+    if (ok) { view = { name: 'round', v: id }; render(); scrollTo(0, 0) }
+  }
+  else if (a === 'savepick' || a === 'lockpick') {
     const r = S.rounds.find(x => x.id === view.v); if (!r || phase(r) !== 'pick') { toast('זמן הבחירה נגמר'); render(); return }
+    const lock = a === 'lockpick';
     const d = D['pk:' + r.id], title = (d.title || '').trim();
     if (!title) { toast('צריך שם שיר'); return }
     const url = (d.url || '').trim(); if (url && !safeUrl(url)) { toast('הלינק צריך להתחיל ב-https'); return }
-    await write(() => db.doc('picks/' + r.id + '__' + me).set({ rid: r.id, uid: me, title: title.slice(0, 80), artist: (d.artist || '').trim().slice(0, 60), url, at: now() }), 'השיר נשמר');
+    if (lock && !confirm('לנעול את "' + title + '"? אחרי הנעילה אי אפשר לשנות.')) return;
+    await write(() => db.doc('picks/' + r.id + '__' + me).set({ rid: r.id, uid: me, title: title.slice(0, 80), artist: (d.artist || '').trim().slice(0, 60), url, locked: lock, at: now(), ...(lock ? { lockedAt: now() } : {}) }), lock ? 'הבחירה ננעלה 🔒' : 'הטיוטה נשמרה');
   }
   else if (a === 'rate') { const d = rateDraft[view.v]; const u = b.dataset.u; d.scores[u] = { ...(d.scores[u] || {}), [b.dataset.k]: +b.dataset.n }; render() }
   else if (a === 'guess') { const d = rateDraft[view.v]; const u = b.dataset.u; d.guesses[u] = d.guesses[u] === b.dataset.g ? null : b.dataset.g; if (!d.guesses[u]) delete d.guesses[u]; render() }
-  else if (a === 'saverate') {
+  else if (a === 'saverate' || a === 'lockrate') {
     const r = S.rounds.find(x => x.id === view.v); if (!r || phase(r) !== 'rate') { toast('זמן הדירוג נגמר'); render(); return }
+    const lock = a === 'lockrate';
+    if (lock && !confirm('לנעול את הדירוג והניחושים? אחרי הנעילה אי אפשר לשנות.')) return;
     const d = rateDraft[r.id], scores = {}, guesses = {};
     S.picks.filter(p => p.rid === r.id && p.uid !== me).forEach(p => {
       if (d.scores[p.uid]) scores[p.uid] = { fit: d.scores[p.uid].fit || 0, fun: d.scores[p.uid].fun || 0 };
       if (d.guesses[p.uid]) guesses[p.uid] = d.guesses[p.uid];
     });
     rateDraft[r.id] = { scores: JSON.parse(JSON.stringify(scores)), guesses: { ...guesses } };
-    await write(() => db.doc('ratings/' + r.id + '__' + me).set({ rid: r.id, uid: me, scores, guesses, at: now() }), 'נשמר');
+    await write(() => db.doc('ratings/' + r.id + '__' + me).set({ rid: r.id, uid: me, scores, guesses, locked: lock, at: now() }), lock ? 'הדירוג ננעל 🔒' : 'נשמר');
   }
   else if (a === 'endpick') { const r = S.rounds.find(x => x.id === view.v); if (!r) return; const t = now(); await write(() => db.doc('rounds/' + r.id).update({ pickEnds: t, rateEnds: t + (r.rateEnds - r.pickEnds) }), 'שלב הדירוג התחיל') }
   else if (a === 'endrate') { const r = S.rounds.find(x => x.id === view.v); if (!r) return; await write(() => db.doc('rounds/' + r.id).update({ rateEnds: now() }), 'התוצאות נחשפו') }
@@ -757,7 +842,7 @@ setInterval(() => {
     db.collection('players').onSnapshot(s => { const m = {}; s.docs.forEach(x => m[x.id] = x.data()); S.players = m; S.loaded.players = true; schedule() }, err);
     db.collection('topics').onSnapshot(s => { S.topics = s.docs.map(x => ({ id: x.id, ...x.data() })); S.loaded.topics = true; schedule() }, err);
     db.doc('config/admin').onSnapshot(s => { S.admin = s.exists ? s.data().uid : null; S.loaded.admin = true; schedule() }, err);
-    db.doc('config/settings').onSnapshot(s => { if (s.exists) S.settings = { ...S.settings, ...s.data() }; S.loaded.settings = true; delete D.set; schedule() }, err);
+    db.doc('config/settings').onSnapshot(s => { S.settings = { startHour: 10, pickHours: 24, rateHours: 24, inactive: [], ...(s.exists ? s.data() : {}) }; S.loaded.settings = true; delete D.set; schedule() }, err);
     render();
   });
   try { await auth.signInAnonymously() }
