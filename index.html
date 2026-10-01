@@ -493,10 +493,10 @@ function historyView() {
   <p class="hint" style="margin:0 0 14px">רק אתה רואה את זה. התוצאות נשמרות כאן אוטומטית בסוף כל סבב, כפי שהיו באותו רגע, גם אם הסבב יימחק אחר כך.</p>`;
   if (!L.length) return h + `<p class="muted">עוד אין סבבים שהסתיימו.</p>`;
   h += `<button class="btn ghost block" data-act="dlcsv" style="margin-bottom:14px">הורד הכל כקובץ אקסל (CSV)</button>`;
-  h += L.map(l => `<details class="panel" style="margin-bottom:10px"><summary><span><b>${esc(l.topic)}</b><small class="muted" style="display:block;font-size:13px">${fmtDate(l.createdAt)} · ${esc(l.metric2)} · ${l.results.length} שירים</small></span></summary>
+  h += L.map(l => `<details data-k="log-${esc(l.rid)}" class="panel" style="margin-bottom:10px"><summary><span><b>${esc(l.topic)}</b><small class="muted" style="display:block;font-size:13px">${fmtDate(l.createdAt)} · ${esc(l.metric2)} · ${l.results.length} שירים</small></span></summary>
     <div style="margin-top:10px">${l.results.map(x => `<div class="logrow"><b>${x.rank}. ${esc(x.nick)}</b> <span class="muted">${esc(x.title)}${x.artist ? ' / ' + esc(x.artist) : ''}</span><div class="muted" style="font-size:13px">${x.pts} נק׳ · 🎯 ${x.fit} · ✨ ${x.fun} · ${x.raters} מדרגים · 🕵️ ${x.guessedRight}/${x.guessedTotal}${x.complete ? '' : ' · לא סיים לדרג'}${x.hive ? ' · 🐑' : ''}</div></div>`).join('')}
     ${l.bonus.length ? `<div class="logrow"><b>בונוס ניחושים:</b> ${l.bonus.map(b => esc(b.nick) + ' +' + b.bonus).join(', ')}</div>` : ''}
-    <details style="margin-top:8px"><summary class="muted" style="font-size:14px">כל הדירוגים והניחושים</summary>${l.ratings.map(r => `<div class="logrow"><b>${esc(r.rater)}</b>${r.locked ? ' 🔒' : ''}<div class="muted" style="font-size:13px">${r.scores.map(s => esc(s.song) + ': 🎯' + s.fit + ' ✨' + s.fun).join(' | ')}</div>${r.guesses.length ? `<div class="muted" style="font-size:13px">ניחושים: ${r.guesses.map(g => esc(g.song) + ' ← ' + esc(g.guess) + (g.right ? ' ✓' : ' ✗')).join(' | ')}</div>` : ''}</div>`).join('')}</details></div></details>`).join('');
+    <details data-k="logr-${esc(l.rid)}" style="margin-top:8px"><summary class="muted" style="font-size:14px">כל הדירוגים והניחושים</summary>${l.ratings.map(r => `<div class="logrow"><b>${esc(r.rater)}</b>${r.locked ? ' 🔒' : ''}<div class="muted" style="font-size:13px">${r.scores.map(s => esc(s.song) + ': 🎯' + s.fit + ' ✨' + s.fun).join(' | ')}</div>${r.guesses.length ? `<div class="muted" style="font-size:13px">ניחושים: ${r.guesses.map(g => esc(g.song) + ' ← ' + esc(g.guess) + (g.right ? ' ✓' : ' ✗')).join(' | ')}</div>` : ''}</div>`).join('')}</details></div></details>`).join('');
   return h;
 }
 function downloadCsv() {
@@ -562,6 +562,8 @@ function nav() {
     : `<button class="btn add" data-act="go" data-v="suggest">+ הצע נושא</button>`;
   return `<nav class="nav"><div class="in">${tab('home', 'סבבים')}${mid}${tab('board', 'טבלה')}</div></nav>`;
 }
+const openDetails = new Set();
+app.addEventListener('toggle', e => { const d = e.target; if (d.tagName === 'DETAILS' && d.dataset.k) { d.open ? openDetails.add(d.dataset.k) : openDetails.delete(d.dataset.k) } }, true);
 function render() {
   pending = false;
   if (fatal) { app.innerHTML = `<div class="empty">${LOGO('big')}<div class="display" style="margin-top:14px">PeakTheVibe</div><p class="muted">${esc(fatal)}</p></div>`; return }
@@ -579,7 +581,10 @@ function render() {
   else if (v === 'board') body = boardView();
   else if (v === 'profile') body = profileView(view.v);
   else body = homeView();
+  const y = window.scrollY || 0;
   app.innerHTML = body + FOOT + (rateBar ? '' : nav());
+  app.querySelectorAll('details[data-k]').forEach(d => { if (openDetails.has(d.dataset.k)) d.open = true });
+  if (window.scrollY !== y) window.scrollTo(0, y);
 }
 const LOGO = (cls) => `<span class="logo ${cls || ''}"><img src="PeakTheVibeLogo.png" alt=""></span>`;
 const FOOT = `<footer class="foot">© ${new Date().getFullYear()} PeakTheVibe. כל הזכויות שמורות לאופק טלקר.</footer>`;
@@ -711,7 +716,7 @@ function adminView() {
     <span class="qbtns"><button data-act="qmove" data-v="${esc(t.id)}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="למעלה">▲</button><button data-act="qmove" data-v="${esc(t.id)}" data-d="1" ${i === Q.length - 1 ? 'disabled' : ''} aria-label="למטה">▼</button><button data-act="qdel" data-v="${esc(t.id)}" aria-label="מחק">✕</button></span></div>`;
   }).join('') : `<p class="muted">התור ריק. כשאין נושא בתור, נבחר נושא מהמאגר המובנה.</p>`;
   draft('add', () => ({ t: '', m: DEFAULT_M.m, f: true }));
-  h += `<details class="panel" style="margin-top:10px"><summary><b>הוסף נושא ישר לתור</b></summary><div style="margin-top:12px">
+  h += `<details data-k="addq" class="panel" style="margin-top:10px"><summary><b>הוסף נושא ישר לתור</b></summary><div style="margin-top:12px">
   <textarea class="field" data-f="add.t" maxlength="90">${esc(D.add.t)}</textarea>${ideaChips('add')}${metricPicker('add')}${langPicker('add')}
   <button class="btn block" style="margin-top:12px" data-act="addq">הוסף לסוף התור</button></div></details>`;
   h += `<h2>הסבב היומי</h2><div class="panel">
