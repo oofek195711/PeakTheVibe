@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#E83E72">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>שיר לנושא</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Karantina:wght@400;700&family=Assistant:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --bg:#ECE6F7;--surface:#FFFFFF;--ink:#241B3F;--muted:#6B6187;--line:#D6CDEB;
+  --pink:#E83E72;--pink-ink:#FFFFFF;--mint:#12A26D;--chip:#E0D7F3;--warn:#B8561B;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#17122A;--surface:#231B3B;--ink:#F2EDFF;--muted:#A99FCB;--line:#3A2F5E;
+    --pink:#FF6B98;--pink-ink:#1A0F22;--mint:#4BE0A3;--chip:#30264F;--warn:#F5A26B;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17122A;--surface:#231B3B;--ink:#F2EDFF;--muted:#A99FCB;--line:#3A2F5E;
+  --pink:#FF6B98;--pink-ink:#1A0F22;--mint:#4BE0A3;--chip:#30264F;--warn:#F5A26B;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Assistant",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-size:17px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
+.display{font-family:"Karantina","Assistant",system-ui,sans-serif;font-weight:700;line-height:.95;letter-spacing:.01em}
+#app{max-width:480px;margin:0 auto;padding:18px 18px 110px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+.brand .display{font-size:30px}
+.brand small{color:var(--muted);font-size:14px}
+h2{font-size:15px;font-weight:800;color:var(--muted);margin:28px 0 8px}
+.muted{color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:999px;padding:12px 20px;font-weight:800;background:var(--pink);color:var(--pink-ink);min-height:48px}
+.btn.block{width:100%}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--line)}
+.btn:disabled{opacity:.45}
+.back{background:none;border:0;padding:8px 0;color:var(--muted);font-weight:600;min-height:44px}
+
+/* round list */
+.round{display:block;width:100%;text-align:right;background:var(--surface);border:0;border-radius:18px;padding:16px 18px;margin-bottom:10px;position:relative;overflow:hidden}
+.round::before{content:"";position:absolute;inset:0 0 0 auto;width:6px;background:var(--c,var(--line))}
+.round .display{font-size:34px;display:block;margin-bottom:6px}
+.round .meta{display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--muted)}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:800;background:var(--chip);color:var(--ink)}
+.pill.pick{background:var(--pink);color:var(--pink-ink)}
+.pill.rate{background:var(--mint);color:#0B2A1D}
+.empty{text-align:center;padding:48px 8px}
+.empty .display{font-size:44px;margin-bottom:10px}
+
+/* round screen */
+.topic{font-size:64px;margin:6px 0 18px;overflow-wrap:anywhere}
+.steps{display:flex;gap:6px;margin-bottom:18px}
+.steps div{flex:1;text-align:center;font-size:13px;font-weight:800;padding:6px 0;border-radius:10px;background:var(--chip);color:var(--muted)}
+.steps div.on{background:var(--ink);color:var(--bg)}
+.steps div.past{color:var(--ink)}
+.clock{font-size:15px;margin-bottom:18px}
+.clock b{font-size:17px}
+.panel{background:var(--surface);border-radius:20px;padding:18px}
+label.f{display:block;font-size:14px;font-weight:800;margin:0 0 6px}
+.field{width:100%;border:2px solid var(--line);background:var(--bg);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:17px}
+.field:focus{border-color:var(--pink);outline:none}
+textarea.field{min-height:92px;resize:none}
+.hint{font-size:13px;color:var(--muted);margin:-8px 0 14px}
+.mine{border:2px dashed var(--mint);border-radius:16px;padding:12px 14px;margin-bottom:14px}
+.row-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+
+.song{background:var(--surface);border-radius:20px;padding:16px 18px;margin-bottom:12px}
+.song .t{font-weight:800;font-size:19px;line-height:1.25}
+.song .a{color:var(--muted);font-size:15px}
+.links{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
+.links a{font-size:13px;font-weight:700;text-decoration:none;color:var(--ink);background:var(--chip);border-radius:999px;padding:6px 11px;min-height:32px;display:inline-flex;align-items:center}
+.scale{margin-top:12px}
+.scale span{font-size:14px;font-weight:800;display:block;margin-bottom:6px}
+.dots{display:flex;gap:8px}
+.dots button{flex:1;height:46px;border-radius:14px;border:2px solid var(--line);background:transparent;font-weight:800;font-size:18px}
+.dots button.on{background:var(--pink);border-color:var(--pink);color:var(--pink-ink)}
+.dots.fun button.on{background:var(--mint);border-color:var(--mint);color:#0B2A1D}
+.song.self{opacity:.7;border:2px dashed var(--line);background:transparent}
+.savebar{position:fixed;left:0;right:0;bottom:0;padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));background:var(--bg);box-shadow:0 -1px 0 var(--line);z-index:5}
+.savebar .in{max-width:444px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.savebar .prog{font-size:14px;font-weight:700;flex:1}
+
+.playlist{margin-top:8px}
+.playlist .head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+
+/* results */
+.res{display:grid;grid-template-columns:34px 1fr auto;gap:4px 12px;align-items:center;background:var(--surface);border-radius:18px;padding:14px 16px;margin-bottom:10px}
+.res .rk{font-family:"Karantina",system-ui,sans-serif;font-weight:700;font-size:34px;color:var(--muted);text-align:center}
+.res.win .rk{color:var(--pink)}
+.res .who{font-weight:800}
+.res .sg{font-size:14px;color:var(--muted);line-height:1.3}
+.res .pts{font-family:"Karantina",system-ui,sans-serif;font-weight:700;font-size:40px;line-height:1}
+.res .sub{grid-column:2 / 4;display:flex;gap:14px;font-size:13px;color:var(--muted)}
+.res .links{grid-column:1 / 4;margin:4px 0 0}
+.awards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.award{background:var(--ink);color:var(--bg);border-radius:18px;padding:14px}
+.award small{display:block;font-size:13px;opacity:.8;font-weight:700}
+.award b{display:block;font-size:17px;line-height:1.25;margin-top:4px}
+
+/* board */
+.seg{display:flex;background:var(--chip);border-radius:999px;padding:4px;margin-bottom:16px}
+.seg button{flex:1;border:0;background:transparent;border-radius:999px;padding:10px;font-weight:800;min-height:44px;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--ink)}
+.lb{display:flex;align-items:center;gap:14px;padding:14px 4px;border-bottom:1px solid var(--line)}
+.lb .rk{font-family:"Karantina",system-ui,sans-serif;font-weight:700;font-size:30px;width:30px;text-align:center;color:var(--muted)}
+.lb:first-child .rk{color:var(--pink)}
+.lb .nm{flex:1;font-weight:800}
+.lb .nm small{display:block;font-weight:400;color:var(--muted);font-size:13px}
+.lb .p{font-family:"Karantina",system-ui,sans-serif;font-weight:700;font-size:34px}
+.hero{background:var(--pink);color:var(--pink-ink);border-radius:22px;padding:20px;margin-bottom:14px}
+.hero small{font-weight:700;opacity:.9}
+.hero .display{font-size:52px;display:block;margin:4px 0}
+
+/* nav */
+.nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);box-shadow:0 -1px 0 var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));z-index:5}
+.nav .in{max-width:456px;margin:0 auto;display:flex;align-items:center;gap:8px}
+.nav .tab{flex:1;border:0;background:none;padding:10px 0;font-weight:800;color:var(--muted);min-height:48px;border-radius:14px}
+.nav .tab.on{color:var(--ink);background:var(--chip)}
+.nav .add{flex:0 0 auto}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.chips button{border:0;background:var(--chip);border-radius:999px;padding:8px 12px;font-size:14px;text-align:right;min-height:40px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.banner{background:var(--chip);border-radius:14px;padding:12px 14px;font-size:14px;margin-bottom:14px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-weight:700;font-size:15px;z-index:20;max-width:90vw;text-align:center}
+@media (prefers-reduced-motion:no-preference){.topic{animation:drop .5s cubic-bezier(.2,.9,.3,1.2)}@keyframes drop{from{transform:translateY(-10px);opacity:0}to{transform:none;opacity:1}}}
+</style>
+</head>
+<body>
+<div id="app"><p class="muted" style="padding-top:40px;text-align:center">טוען…</p></div>
+<div id="toast" class="toast" hidden></div>
+<script>
+/* ===== הדבק כאן את ה-firebaseConfig מ-Firebase (שלב 4 בהוראות) ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyAeQVZibOR-alTk5BtmCvkBYla9wl20sMw",
+  authDomain: "peakthevibe.firebaseapp.com",
+  projectId: "peakthevibe",
+  storageBucket: "peakthevibe.firebasestorage.app",
+  messagingSenderId: "65914699449",
+  appId: "1:65914699449:web:fc6abe1c754deb497d6568"
+};
+/* ==================================================================== */
+const app = document.getElementById('app');
+const SUGGEST = [
+  'השיר הכי דכאוני שאתם מכירים','שיר לפקק באיילון','השיר שתשמעו בהלוויה שלכם',
+  'השיר הכי מביך בפלייליסט שלכם','שיר לחתונה של האקס','שיר שמתאים לשטיפת כלים',
+  'שיר למעלית','שיר לדייט ראשון גרוע','שיר שמזכיר את התיכון','שיר לסוף העולם',
+  'שיר שאמא שלכם אוהבת','שיר לחדר כושר','שיר לנסיעה בלילה','השיר הכי ישראלי שיש',
+  'שיר שהיה צריך להיות ההמנון','שיר ליום האחרון בעבודה','שיר לבוקר יום ראשון',
+  'שיר שאי אפשר לא לשיר איתו'
+];
+let db = null, me = null, canWrite = true, ready = false, fatal = null;
+const S = { rounds: [], picks: [], ratings: [], players: {}, loaded: {} };
+let view = { name: 'home', rid: null };
+let boardMode = 'week';
+const drafts = { pick: {}, rate: {}, nick: '', topic: '', ph: 24, rh: 24 };
+let pending = false, busy = false;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeUrl = u => (typeof u === 'string' && /^https?:\/\//i.test(u.trim())) ? u.trim() : '';
+const now = () => Date.now();
+const nameOf = uid => (S.players[uid] && S.players[uid].nick) || 'שחקן';
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function phase(r){const t=now();return t<r.pickEnds?'pick':t<r.rateEnds?'rate':'done'}
+function fmtLeft(ms){
+  if(ms<=0) return 'נגמר';
+  const m=Math.ceil(ms/60000), h=Math.floor(m/60), mm=m%60;
+  if(h>=48) return Math.floor(h/24)+' ימים';
+  if(h>0) return h+' ש׳'+(mm?' ו-'+mm+' דק׳':'');
+  return m+' דק׳';
+}
+function fmtDate(t){return new Date(t).toLocaleDateString('he-IL',{weekday:'short',day:'numeric',month:'numeric'})}
+function weekStart(){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d.getTime()}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,2600)}
+
+function ytId(u){const m=(u||'').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);return m?m[1]:null}
+function linksHtml(p){
+  const q=encodeURIComponent((p.title+' '+(p.artist||'')).trim());
+  const u=safeUrl(p.url);
+  const L=[];
+  if(u){L.push(['▶ הלינק',u]);L.push(['לכל האפליקציות','https://song.link/'+u]);}
+  L.push(['Spotify','https://open.spotify.com/search/'+q]);
+  L.push(['Apple Music','https://music.apple.com/search?term='+q]);
+  L.push(['YouTube','https://www.youtube.com/results?search_query='+q]);
+  return '<div class="links">'+L.map(([t,h])=>`<a href="${esc(h)}" target="_blank" rel="noopener">${esc(t)}</a>`).join('')+'</div>';
+}
+function playlistHead(picks){
+  const ids=picks.map(p=>ytId(safeUrl(p.url))).filter(Boolean);
+  const yt=ids.length?`<a class="btn ghost" style="min-height:40px;padding:8px 14px;font-size:14px" href="https://www.youtube.com/watch_videos?video_ids=${ids.join(',')}" target="_blank" rel="noopener">נגן ${ids.length} ביוטיוב ברצף</a>`:'';
+  return `<div class="head"><span class="muted" style="font-size:14px">${picks.length} שירים</span><span style="display:flex;gap:8px">${yt}<button class="btn ghost" style="min-height:40px;padding:8px 14px;font-size:14px" data-act="copylist">העתק רשימה</button></span></div>`;
+}
+
+function results(r){
+  const picks=S.picks.filter(p=>p.rid===r.id);
+  const by={};S.ratings.filter(x=>x.rid===r.id).forEach(x=>by[x.uid]=x.scores||{});
+  const rows=picks.map(p=>{
+    const got=[];
+    for(const [ru,sc] of Object.entries(by)){if(ru===p.uid)continue;const v=sc[p.uid];if(v&&v.fit&&v.fun)got.push(v)}
+    const mine=by[p.uid]||{};
+    const complete=picks.filter(q=>q.uid!==p.uid).every(q=>mine[q.uid]&&mine[q.uid].fit&&mine[q.uid].fun);
+    const n=got.length;
+    const fit=n?got.reduce((a,v)=>a+v.fit,0)/n:0, fun=n?got.reduce((a,v)=>a+v.fun,0)/n:0;
+    const raw=Math.round((fit+fun)*10)/10;
+    return {...p,n,fit,fun,raw,complete,pts:complete?raw:0};
+  });
+  rows.sort((a,b)=>b.pts-a.pts||b.raw-a.raw);
+  return rows;
+}
+
+function board(mode){
+  const ws=weekStart();
+  const done=S.rounds.filter(r=>phase(r)==='done'&&(mode==='all'||r.rateEnds>=ws));
+  const tot={};let best=null,funny=null,fitting=null;
+  done.forEach(r=>{
+    const rows=results(r);const top=rows.length&&rows[0].pts>0?rows[0].pts:null;
+    rows.forEach(x=>{
+      const t=tot[x.uid]||(tot[x.uid]={uid:x.uid,pts:0,played:0,wins:0});
+      t.pts+=x.pts;t.played++;if(top!==null&&x.pts===top)t.wins++;
+      const item={...x,topic:r.topic};
+      if(x.complete&&x.n){
+        if(!best||x.pts>best.pts)best=item;
+        if(!funny||x.fun>funny.fun)funny=item;
+        if(!fitting||x.fit>fitting.fit)fitting=item;
+      }
+    });
+  });
+  const rows=Object.values(tot).map(t=>({...t,pts:Math.round(t.pts*10)/10})).sort((a,b)=>b.pts-a.pts||b.wins-a.wins);
+  return {rows,count:done.length,best,funny,fitting};
+}
+
+/* ---------- rendering ---------- */
+function schedule(){
+  const a=document.activeElement;
+  if(a&&app.contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){pending=true;return}
+  render();
+}
+app.addEventListener('focusout',()=>{if(!pending)return;setTimeout(()=>{const a=document.activeElement;if(pending&&!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))){pending=false;render()}},0)});
+
+function nav(){
+  const tab=(n,t)=>`<button class="tab ${view.name===n?'on':''}" data-act="go" data-v="${n}">${t}</button>`;
+  return `<nav class="nav"><div class="in">${tab('home','סבבים')}${canWrite?`<button class="btn add" data-act="go" data-v="new">+ נושא חדש</button>`:''}${tab('board','טבלה')}</div></nav>`;
+}
+
+function render(){
+  pending=false;
+  if(fatal){app.innerHTML=`<div class="empty"><div class="display">שיר לנושא</div><p class="muted">${esc(fatal)}</p></div>`;return}
+  if(!ready||!S.loaded.players||!S.loaded.rounds){app.innerHTML='<p class="muted" style="padding-top:40px;text-align:center">טוען…</p>';return}
+  if(!S.players[me]&&canWrite){app.innerHTML=nickView();return}
+  const ro=canWrite?'':`<div class="banner">משהו בהרשאות לא מוגדר נכון. בדוק את ה-Rules ב-Firebase (שלב 3 בהוראות).</div>`;
+  let body='';
+  if(view.name==='round'){const r=S.rounds.find(x=>x.id===view.rid);body=r?roundView(r):homeView()}
+  else if(view.name==='new')body=newView();
+  else if(view.name==='board')body=boardView();
+  else body=homeView();
+  app.innerHTML=ro+body+(view.name==='round'&&phaseOf()==='rate'?'':nav());
+}
+function phaseOf(){const r=S.rounds.find(x=>x.id===view.rid);return r?phase(r):null}
+
+function nickView(){
+  return `<div style="padding-top:40px"><div class="display" style="font-size:64px;margin-bottom:10px">שיר לנושא</div>
+  <p>כל יום נושא חדש. בוחרים שיר שמתאים, מדרגים את השירים של כולם, ומי שבחר הכי טוב לוקח.</p>
+  <div class="panel" style="margin-top:22px"><label class="f" for="nick">איך יקראו לך במשחק?</label>
+  <input id="nick" class="field" data-f="nick" maxlength="24" value="${esc(drafts.nick)}" placeholder="למשל: דנה">
+  <button class="btn block" data-act="savenick">יאללה, נכנסים</button></div></div>`;
+}
+
+function homeView(){
+  const open=S.rounds.filter(r=>phase(r)!=='done').sort((a,b)=>(phase(a)==='pick'?a.pickEnds:a.rateEnds)-(phase(b)==='pick'?b.pickEnds:b.rateEnds));
+  const done=S.rounds.filter(r=>phase(r)==='done').sort((a,b)=>b.rateEnds-a.rateEnds);
+  const head=`<div class="brand"><span class="display">שיר לנושא</span><small>שלום, ${esc(nameOf(me))}</small></div>`;
+  if(!S.rounds.length) return head+`<div class="empty"><div class="display">עוד אין נושא</div><p class="muted">פתח את הסבב הראשון ושלח את הלינק לחברים.</p>${canWrite?'<button class="btn" data-act="go" data-v="new">פתח נושא</button>':''}</div>`;
+  const row=r=>{
+    const ph=phase(r);const picks=S.picks.filter(p=>p.rid===r.id);
+    const mine=picks.some(p=>p.uid===me);
+    const rated=S.ratings.some(x=>x.rid===r.id&&x.uid===me);
+    let pill,info,c;
+    if(ph==='pick'){pill='<span class="pill pick">בוחרים</span>';c='var(--pink)';info=`<span data-ends="${r.pickEnds}">${fmtLeft(r.pickEnds-now())}</span> לבחירה`;
+      if(!mine)pill+=' <span class="pill">עוד לא בחרת</span>'}
+    else if(ph==='rate'){pill='<span class="pill rate">מדרגים</span>';c='var(--mint)';info=`<span data-ends="${r.rateEnds}">${fmtLeft(r.rateEnds-now())}</span> לדירוג`;
+      if(!rated&&mine)pill+=' <span class="pill">חסר הדירוג שלך</span>'}
+    else{const w=results(r)[0];pill='<span class="pill">תוצאות</span>';info=w&&w.pts>0?'ניצח/ה: '+esc(nameOf(w.uid)):'אין ניקוד';c='var(--line)'}
+    return `<button class="round" style="--c:${c}" data-act="open" data-v="${esc(r.id)}"><span class="display">${esc(r.topic)}</span><span class="meta"><span>${pill}</span><span>${info}</span></span><span class="meta" style="margin-top:4px"><span>${picks.length} שירים</span><span>${fmtDate(r.createdAt)}</span></span></button>`;
+  };
+  return head+(open.length?`<h2>פתוחים עכשיו</h2>`+open.map(row).join(''):'')+(done.length?`<h2>הסתיימו</h2>`+done.map(row).join(''):'');
+}
+
+function newView(){
+  const opt=(v,sel)=>[6,12,24,48].map(h=>`<option value="${h}" ${h==sel?'selected':''}>${h} שעות</option>`).join('');
+  return `<button class="back" data-act="go" data-v="home">→ חזרה</button>
+  <div class="display" style="font-size:48px;margin:4px 0 16px">נושא חדש</div>
+  <div class="panel">
+  <label class="f" for="topic">הנושא</label>
+  <textarea id="topic" class="field" data-f="topic" maxlength="90" placeholder="השיר הכי דכאוני שאתם מכירים">${esc(drafts.topic)}</textarea>
+  <p class="hint">צריך רעיון? תבחר אחד:</p>
+  <div class="chips">${SUGGEST.slice().sort((a,b)=>hash(a+new Date().toDateString())-hash(b+new Date().toDateString())).slice(0,6).map(s=>`<button data-act="sugg" data-v="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+  <div class="two"><div><label class="f" for="ph">זמן לבחירה</label><select id="ph" class="field" data-f="ph">${opt(0,drafts.ph)}</select></div>
+  <div><label class="f" for="rh">זמן לדירוג</label><select id="rh" class="field" data-f="rh">${opt(0,drafts.rh)}</select></div></div>
+  <button class="btn block" data-act="create" ${busy?'disabled':''}>פתח את הסבב</button></div>`;
+}
+
+function steps(ph){
+  const order=['pick','rate','done'],names={pick:'בחירה',rate:'דירוג',done:'תוצאות'};const i=order.indexOf(ph);
+  return `<div class="steps">${order.map((k,j)=>`<div class="${j===i?'on':j<i?'past':''}">${names[k]}</div>`).join('')}</div>`;
+}
+
+function roundView(r){
+  const ph=phase(r);const picks=S.picks.filter(p=>p.rid===r.id);
+  const isCreator=r.by===me;
+  let h=`<button class="back" data-act="go" data-v="home">→ כל הסבבים</button><div class="display topic">${esc(r.topic)}</div>${steps(ph)}`;
+  if(ph==='pick'){
+    const mine=picks.find(p=>p.uid===me);
+    if(drafts.pick[r.id]===undefined)drafts.pick[r.id]=mine?{title:mine.title,artist:mine.artist||'',url:mine.url||''}:{title:'',artist:'',url:''};
+    const d=drafts.pick[r.id];
+    h+=`<div class="clock">נשארו <b data-ends="${r.pickEnds}">${fmtLeft(r.pickEnds-now())}</b> לבחירה. ${picks.length} כבר בחרו.</div>`;
+    if(canWrite){
+      h+=`<div class="panel">${mine?`<div class="mine"><b>הבחירה שלך:</b> ${esc(mine.title)}${mine.artist?' / '+esc(mine.artist):''}<div class="hint" style="margin:4px 0 0">אפשר לשנות עד סוף זמן הבחירה.</div></div>`:''}
+      <label class="f" for="pt">שם השיר</label><input id="pt" class="field" data-f="p.title" maxlength="80" value="${esc(d.title)}">
+      <label class="f" for="pa">אמן</label><input id="pa" class="field" data-f="p.artist" maxlength="60" value="${esc(d.artist)}">
+      <label class="f" for="pu">לינק (לא חובה)</label><input id="pu" class="field" data-f="p.url" inputmode="url" dir="ltr" value="${esc(d.url)}" placeholder="Spotify / Apple Music / YouTube">
+      <p class="hint">מדביקים לינק מכל אפליקציה. כל אחד יוכל לפתוח את השיר באפליקציה שלו.</p>
+      <button class="btn block" data-act="savepick" ${busy?'disabled':''}>${mine?'עדכן בחירה':'שלח את השיר'}</button></div>`;
+    }
+    if(isCreator&&picks.length>=2)h+=`<div class="row-actions"><button class="btn ghost block" data-act="endpick">כולם בחרו? התחל דירוג עכשיו</button></div>`;
+    h+=`<p class="hint" style="margin-top:14px">השירים של האחרים נחשפים רק בשלב הדירוג, בלי שמות.</p>`;
+  }
+  else if(ph==='rate'){
+    const order=picks.slice().sort((a,b)=>hash(r.id+a.uid)-hash(r.id+b.uid));
+    const saved=(S.ratings.find(x=>x.rid===r.id&&x.uid===me)||{}).scores||{};
+    if(drafts.rate[r.id]===undefined)drafts.rate[r.id]=JSON.parse(JSON.stringify(saved));
+    const d=drafts.rate[r.id];
+    const others=order.filter(p=>p.uid!==me);
+    const doneN=others.filter(p=>d[p.uid]&&d[p.uid].fit&&d[p.uid].fun).length;
+    const dirty=JSON.stringify(d)!==JSON.stringify(saved);
+    const iPicked=picks.some(p=>p.uid===me);
+    h+=`<div class="clock">נשארו <b data-ends="${r.rateEnds}">${fmtLeft(r.rateEnds-now())}</b> לדירוג. מי שבחר/ה שיר ולא דירג/ה את כולם לא מקבל/ת נקודות בסבב.</div>`;
+    h+=`<div class="playlist">${playlistHead(order)}`;
+    h+=order.map(p=>{
+      if(p.uid===me)return `<div class="song self"><div class="t">${esc(p.title)}</div><div class="a">${esc(p.artist)}</div><div class="hint" style="margin:6px 0 0">השיר שלך, לא מדרגים אותו</div></div>`;
+      const v=d[p.uid]||{};
+      const dots=(k)=>[1,2,3,4,5].map(n=>`<button class="${v[k]===n?'on':''}" data-act="rate" data-u="${esc(p.uid)}" data-k="${k}" data-n="${n}" aria-label="${n}" ${canWrite?'':'disabled'}>${n}</button>`).join('');
+      return `<div class="song"><div class="t">${esc(p.title)}</div><div class="a">${esc(p.artist)}</div>${linksHtml(p)}
+      <div class="scale"><span>כמה מתאים לנושא</span><div class="dots">${dots('fit')}</div></div>
+      <div class="scale"><span>כמה מצחיק</span><div class="dots fun">${dots('fun')}</div></div></div>`;
+    }).join('')+'</div>';
+    if(isCreator)h+=`<div class="row-actions"><button class="btn ghost block" data-act="endrate">כולם דירגו? חשוף תוצאות עכשיו</button></div>`;
+    h+=`<div style="height:70px"></div>`;
+    if(canWrite&&others.length)h+=`<div class="savebar"><div class="in"><div class="prog">דירגת ${doneN} מתוך ${others.length}${!iPicked?'<br><span class="muted" style="font-weight:400">לא בחרת שיר בסבב הזה</span>':''}</div><button class="btn" data-act="saverate" ${(!dirty||busy)?'disabled':''}>${dirty?'שמור דירוג':'נשמר'}</button></div></div>`;
+    else h+=nav();
+  }
+  else{
+    const rows=results(r);
+    if(!rows.length)return h+`<p class="muted">אף אחד לא בחר שיר בסבב הזה.</p>`;
+    const rated=rows.filter(x=>x.n&&x.complete);
+    const fun=rated.slice().sort((a,b)=>b.fun-a.fun)[0], fit=rated.slice().sort((a,b)=>b.fit-a.fit)[0];
+    if(fun&&fit)h+=`<div class="awards"><div class="award"><small>הכי מתאים לנושא</small><b>${esc(fit.title)}</b><small style="margin-top:4px">${esc(nameOf(fit.uid))}</small></div><div class="award"><small>הכי מצחיק</small><b>${esc(fun.title)}</b><small style="margin-top:4px">${esc(nameOf(fun.uid))}</small></div></div>`;
+    const top=rows[0].pts;
+    h+=`<div class="playlist">${playlistHead(rows)}</div>`;
+    h+=rows.map((x,i)=>`<div class="res ${x.pts>0&&x.pts===top?'win':''}"><div class="rk">${i+1}</div><div><div class="who">${esc(nameOf(x.uid))}${x.uid===me?' (את/ה)':''}</div><div class="sg">${esc(x.title)}${x.artist?' / '+esc(x.artist):''}</div></div><div class="pts">${x.pts}</div>
+    <div class="sub">${x.complete?`<span>מתאים ${x.fit.toFixed(1)}</span><span>מצחיק ${x.fun.toFixed(1)}</span><span>${x.n} דירוגים</span>`:'<span style="color:var(--warn);font-weight:700">לא סיים/ה לדרג, 0 נקודות</span>'}</div>${linksHtml(x)}</div>`).join('');
+    h+=`<p class="hint" style="margin-top:12px">הניקוד הוא ממוצע (מתאים + מצחיק) מכל המדרגים, עד 10 לסבב.</p>`;
+  }
+  return h;
+}
+
+function boardView(){
+  const b=board(boardMode);
+  let h=`<div class="brand"><span class="display">טבלה</span></div>
+  <div class="seg"><button class="${boardMode==='week'?'on':''}" data-act="bm" data-v="week">השבוע</button><button class="${boardMode==='all'?'on':''}" data-act="bm" data-v="all">כל הזמנים</button></div>`;
+  if(!b.rows.length)return h+`<div class="empty"><div class="display">${boardMode==='week'?'עוד אין סבבים השבוע':'עוד אין תוצאות'}</div><p class="muted">הטבלה מתמלאת כשסבב מגיע לשלב התוצאות.</p></div>`;
+  const lead=b.rows[0];
+  h+=`<div class="hero"><small>${boardMode==='week'?'מוביל/ה השבוע':'מוביל/ה בכל הזמנים'}, ${b.count} סבבים</small><span class="display">${esc(nameOf(lead.uid))}</span><small>${lead.pts} נקודות, ${lead.wins} ניצחונות</small></div>`;
+  const aw=[];
+  if(b.best)aw.push(['השיר הכי חזק',b.best]);
+  if(b.funny)aw.push(['הכי מצחיק',b.funny]);
+  if(b.fitting&&aw.length<2)aw.push(['הכי מתאים',b.fitting]);
+  if(aw.length)h+=`<div class="awards">${aw.map(([t,x])=>`<div class="award"><small>${t}</small><b>${esc(x.title)}</b><small style="margin-top:4px">${esc(nameOf(x.uid))} על "${esc(x.topic)}"</small></div>`).join('')}</div>`;
+  h+=b.rows.map((x,i)=>`<div class="lb"><div class="rk">${i+1}</div><div class="nm">${esc(nameOf(x.uid))}${x.uid===me?' (את/ה)':''}<small>${x.played} סבבים, ${x.wins} ניצחונות</small></div><div class="p">${x.pts}</div></div>`).join('');
+  if(boardMode==='week')h+=`<p class="hint" style="margin-top:12px">השבוע מתחיל ביום ראשון.</p>`;
+  return h;
+}
+
+/* ---------- actions ---------- */
+async function write(fn,okMsg){
+  busy=true;render();
+  try{await fn();if(okMsg)toast(okMsg);return true}
+  catch(e){
+    const c=e&&e.code;
+    if(c==='permission-denied'){toast('אין הרשאה לשמור. בדוק את ה-Rules ב-Firebase.')}
+    else if(c==='unavailable'){toast('אין חיבור לאינטרנט. נסה שוב.')}
+    else if(c==='resource-exhausted')toast('הגעתם למכסה החינמית להיום. זה יתאפס מחר.');
+    else toast('השמירה לא הצליחה. נסה שוב.');
+    return false;
+  }finally{busy=false;render()}
+}
+
+app.addEventListener('input',e=>{
+  const f=e.target.dataset.f;if(!f)return;const v=e.target.value;
+  if(f.startsWith('p.')){drafts.pick[view.rid][f.slice(2)]=v}
+  else if(f==='ph'||f==='rh')drafts[f]=+v;
+  else drafts[f]=v;
+});
+app.addEventListener('change',e=>{const f=e.target.dataset.f;if(f==='ph'||f==='rh')drafts[f]=+e.target.value});
+
+app.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act,v=b.dataset.v;
+  if(a==='go'){view={name:v,rid:null};render();scrollTo(0,0)}
+  else if(a==='open'){view={name:'round',rid:v};render();scrollTo(0,0)}
+  else if(a==='bm'){boardMode=v;render()}
+  else if(a==='sugg'){drafts.topic=v;render()}
+  else if(a==='savenick'){
+    const n=drafts.nick.trim();if(!n){toast('צריך שם');return}
+    await write(()=>db.doc('players/'+me).set({nick:n.slice(0,24),joined:now()}));
+  }
+  else if(a==='create'){
+    const t=drafts.topic.trim();if(!t){toast('צריך נושא');return}
+    const id='r'+now()+Math.random().toString(36).slice(2,6);const t0=now();
+    const pe=t0+drafts.ph*3600e3;
+    const ok=await write(()=>db.doc('rounds/'+id).set({topic:t.slice(0,90),by:me,createdAt:t0,pickEnds:pe,rateEnds:pe+drafts.rh*3600e3}),'הסבב נפתח. שלח לחברים!');
+    if(ok){drafts.topic='';view={name:'round',rid:id};render();scrollTo(0,0)}
+  }
+  else if(a==='savepick'){
+    const r=S.rounds.find(x=>x.id===view.rid);if(!r||phase(r)!=='pick'){toast('זמן הבחירה נגמר');render();return}
+    const d=drafts.pick[r.id];const title=d.title.trim();
+    if(!title){toast('צריך שם שיר');return}
+    const url=d.url.trim();if(url&&!safeUrl(url)){toast('הלינק צריך להתחיל ב-https');return}
+    await write(()=>db.doc('picks/'+r.id+'__'+me).set({rid:r.id,uid:me,title:title.slice(0,80),artist:d.artist.trim().slice(0,60),url,at:now()}),'השיר נשמר');
+  }
+  else if(a==='rate'){
+    const d=drafts.rate[view.rid]||(drafts.rate[view.rid]={});
+    const u=b.dataset.u,k=b.dataset.k,n=+b.dataset.n;
+    d[u]={...(d[u]||{}),[k]:n};render();
+  }
+  else if(a==='saverate'){
+    const r=S.rounds.find(x=>x.id===view.rid);if(!r||phase(r)!=='rate'){toast('זמן הדירוג נגמר');render();return}
+    const d=drafts.rate[r.id]||{};const clean={};
+    S.picks.filter(p=>p.rid===r.id&&p.uid!==me).forEach(p=>{if(d[p.uid])clean[p.uid]={fit:d[p.uid].fit||0,fun:d[p.uid].fun||0}});
+    drafts.rate[r.id]=JSON.parse(JSON.stringify(clean));
+    await write(()=>db.doc('ratings/'+r.id+'__'+me).set({rid:r.id,uid:me,scores:clean,at:now()}),'הדירוג נשמר');
+  }
+  else if(a==='endpick'){
+    const r=S.rounds.find(x=>x.id===view.rid);if(!r)return;const t=now();
+    await write(()=>db.doc('rounds/'+r.id).update({pickEnds:t,rateEnds:t+(r.rateEnds-r.pickEnds)}),'שלב הדירוג התחיל');
+  }
+  else if(a==='endrate'){
+    const r=S.rounds.find(x=>x.id===view.rid);if(!r)return;
+    await write(()=>db.doc('rounds/'+r.id).update({rateEnds:now()}),'התוצאות נחשפו');
+  }
+  else if(a==='copylist'){
+    const r=S.rounds.find(x=>x.id===view.rid);if(!r)return;
+    const ps=S.picks.filter(p=>p.rid===r.id);
+    const txt=r.topic+'\n'+ps.map(p=>'• '+p.title+(p.artist?' / '+p.artist:'')+(safeUrl(p.url)?' '+safeUrl(p.url):'')).join('\n');
+    try{await navigator.clipboard.writeText(txt);toast('הרשימה הועתקה')}catch(_){toast('לא הצלחתי להעתיק במכשיר הזה')}
+  }
+});
+
+/* ---------- clock ---------- */
+let lastSig='';
+setInterval(()=>{
+  document.querySelectorAll('[data-ends]').forEach(el=>el.textContent=fmtLeft(+el.dataset.ends-now()));
+  const sig=S.rounds.map(r=>r.id+phase(r)).join();
+  if(sig!==lastSig){lastSig=sig;if(ready)schedule()}
+},15000);
+
+/* ---------- boot ---------- */
+(async()=>{
+  if(!window.firebase){fatal='לא הצלחתי לטעון את Firebase. בדוק חיבור לאינטרנט.';render();return}
+  if(!firebaseConfig.apiKey||firebaseConfig.apiKey==='PASTE_HERE'){fatal='צריך להדביק את firebaseConfig בקובץ (שלב 4 בהוראות).';render();return}
+  try{firebase.initializeApp(firebaseConfig)}catch(e){fatal='ה-firebaseConfig לא תקין.';render();return}
+  const auth=firebase.auth();
+  auth.onAuthStateChanged(u=>{
+    if(!u)return;
+    if(ready)return;
+    me=u.uid;db=firebase.firestore();ready=true;
+    const err=e=>{fatal='אין גישה לנתונים: '+(e&&e.code||'')+'. בדוק את ה-Rules ב-Firebase.';render()};
+    db.collection('rounds').onSnapshot(s=>{S.rounds=s.docs.map(x=>({id:x.id,...x.data()}));S.loaded.rounds=true;lastSig=S.rounds.map(r=>r.id+phase(r)).join();schedule()},err);
+    db.collection('picks').onSnapshot(s=>{S.picks=s.docs.map(x=>x.data());schedule()},err);
+    db.collection('ratings').onSnapshot(s=>{S.ratings=s.docs.map(x=>x.data());schedule()},err);
+    db.collection('players').onSnapshot(s=>{const m={};s.docs.forEach(x=>m[x.id]=x.data());S.players=m;S.loaded.players=true;schedule()},err);
+    render();
+  });
+  try{await auth.signInAnonymously()}
+  catch(e){fatal='ההתחברות נכשלה ('+(e&&e.code||'')+'). ודא שהפעלת Anonymous ב-Authentication (שלב 2).';render()}
+})();
+</script>
+</body>
+</html>
