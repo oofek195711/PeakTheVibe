@@ -199,6 +199,15 @@ button.lb:first-of-type .rk{color:var(--pink)}
 .savebar .btn{padding:10px 16px}
 .dots button:disabled,.chips button:disabled{opacity:.6}
 .dots button.on:disabled,.chips button.on:disabled{opacity:1}
+
+.bright{display:inline-flex;align-items:center;gap:10px}
+.qbtn{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);background:var(--surface);font-weight:800;font-size:17px;color:var(--ink);padding:0}
+.hitem{display:flex;gap:14px;background:var(--surface);border-radius:18px;padding:14px 16px;margin-bottom:10px}
+.hitem .hic{font-size:26px;line-height:1.2}
+.hitem b{display:block;font-size:17px}
+.hitem p{margin:2px 0 0;font-size:15px;color:var(--muted);line-height:1.45}
+.hitem.warn{box-shadow:inset 0 0 0 2px var(--warn)}
+.hitem.warn p{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -488,6 +497,7 @@ function render() {
   else if (v === 'new' && isAdmin()) body = newView();
   else if (v === 'admin' && isAdmin()) body = adminView();
   else if (v === 'suggest') body = suggestView();
+  else if (v === 'help') body = helpView();
   else if (v === 'board') body = boardView();
   else if (v === 'profile') body = profileView(view.v);
   else body = homeView();
@@ -495,6 +505,25 @@ function render() {
 }
 const LOGO = (cls) => `<span class="logo ${cls || ''}"><img src="PeakTheVibeLogo.png" alt=""></span>`;
 const FOOT = `<footer class="foot">© ${new Date().getFullYear()} PeakTheVibe. כל הזכויות שמורות לאופק טלקר.</footer>`;
+function helpSeen() { try { return localStorage.getItem('ptv_help') === '1' } catch (_) { return true } }
+function markHelp() { try { localStorage.setItem('ptv_help', '1') } catch (_) { } }
+function helpView() {
+  const st = S.settings;
+  const item = (ic, t, d) => `<div class="hitem"><span class="hic">${ic}</span><div><b>${t}</b><p>${d}</p></div></div>`;
+  return `<div style="text-align:center;padding-top:8px">${LOGO('big')}</div>
+  <div class="display" style="font-size:52px;margin:14px 0 6px;text-align:center">איך משחקים</div>
+  <p class="muted" style="text-align:center;margin:0 0 18px">דקה של קריאה, ואתם בפנים.</p>
+  ${item('🎵', 'כל יום נושא חדש', `הנושא נפתח כל יום ב-${hh(st.startHour)}. יש ${st.pickHours} שעות לבחור שיר שמתאים לו.`)}
+  ${item('✏️', 'בוחרים שיר', 'כותבים שם שיר ואמן. לינק מספוטיפיי, אפל מיוזיק או יוטיוב לא חובה, אבל עוזר לכולם לשמוע.')}
+  ${item('🔒', 'שומרים או נועלים', '"שמור טיוטה" אפשר לשנות כמה שרוצים. "נעל" זה סופי. שכחתם לנעול? הטיוטה נספרת בסוף הזמן.')}
+  ${item('⭐', 'מדרגים', `אחרי זמן הבחירה יש ${st.rateHours} שעות לדרג. השירים מוצגים בלי שמות, וכל שיר מקבל 1 עד 5 בשני מדדים: 🎯 כמה מתאים לנושא, ו-✨ מדד שני שמשתנה בכל נושא. את השיר שלכם לא מדרגים.`)}
+  <div class="hitem warn">${'<span class="hic">⚠️</span>'}<div><b>החוק הכי חשוב</b><p>בחרתם שיר? חייבים לדרג את כל השירים האחרים. אחרת השיר שלכם מקבל 0 בסבב.</p></div></div>
+  ${item('🕵️', 'מנחשים מי בחר', 'ליד כל שיר בוחרים מי לדעתכם בחר אותו. כל ניחוש נכון שווה נקודת בונוס.')}
+  ${item('🏆', 'ניקוד ותארים', 'כל שיר מקבל את הממוצע של שני המדדים מכל המדרגים, עד 10 נקודות, ועוד בונוסים מניחושים. יש טבלה שבועית (מיום ראשון), טבלה של כל הזמנים, תארים מצחיקים ופרופיל לכל שחקן.')}
+  ${item('💡', 'יש לכם רעיון לנושא?', 'כפתור "הצע נושא" בתחתית המסך. אם המנהל יאשר, הוא יעלה באחד הימים, בלי שאף אחד יידע שזה שלכם.')}
+  ${item('📱', 'טיפ חשוב', 'הוסיפו את המשחק למסך הבית ופתחו אותו תמיד משם. המשחק מזהה אתכם לפי הדפדפן, אז מחיקת היסטוריה או מעבר לדפדפן אחר ייצרו אתכם מחדש כשחקן חדש.')}
+  <button class="btn block" style="margin-top:18px" data-act="helpdone">הבנתי, יאללה</button>`;
+}
 function nickView() {
   const d = draft('nick', () => ({ v: '' }));
   return `<div style="padding-top:24px;text-align:center">${LOGO('big')}<div class="display" style="font-size:64px;margin:14px 0 10px">PeakTheVibe</div></div><div>
@@ -513,7 +542,7 @@ function metricPicker(key) {
 function homeView() {
   const open = S.rounds.filter(r => phase(r) !== 'done').sort((a, b) => (phase(a) === 'pick' ? a.pickEnds : a.rateEnds) - (phase(b) === 'pick' ? b.pickEnds : b.rateEnds));
   const done = doneRounds().sort((a, b) => b.rateEnds - a.rateEnds);
-  let head = `<div class="brand"><span class="bname">${LOGO()}<span class="display">PeakTheVibe</span></span><button class="linkbtn" data-act="prof" data-v="${esc(me)}">${esc(nameOf(me))}</button></div>`;
+  let head = `<div class="brand"><span class="bname">${LOGO()}<span class="display">PeakTheVibe</span></span><span class="bright"><button class="linkbtn" data-act="prof" data-v="${esc(me)}">${esc(nameOf(me))}</button><button class="qbtn" data-act="go" data-v="help" aria-label="איך משחקים">?</button></span></div>`;
   if (wantAdmin && !S.admin) head += `<div class="banner">עוד אין מנהל למשחק. <button class="btn" style="min-height:40px;margin-top:8px" data-act="claim">הפוך אותי למנהל</button></div>`;
   const nt = nextAutoTime();
   const nextLine = `<p class="hint" style="margin:0 0 6px">הנושא הבא נפתח ${new Date(nt).toDateString() === new Date().toDateString() ? 'היום' : 'מחר'} ב-${hh(S.settings.startHour)}.</p>`;
@@ -732,7 +761,8 @@ const topicOf = k => ({ text: (D[k].t || '').trim().slice(0, 90), metric2: (D[k]
 app.addEventListener('click', async e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const a = b.dataset.act, v = b.dataset.v;
-  if (a === 'go') { view = { name: v, v: null }; render(); scrollTo(0, 0) }
+  if (a === 'helpdone') { markHelp(); view = { name: 'home', v: null }; render(); scrollTo(0, 0) }
+  else if (a === 'go') { view = { name: v, v: null }; render(); scrollTo(0, 0) }
   else if (a === 'open') { view = { name: 'round', v }; render(); scrollTo(0, 0) }
   else if (a === 'prof') { view = { name: 'profile', v }; render(); scrollTo(0, 0) }
   else if (a === 'bm') { boardMode = v; render() }
@@ -741,7 +771,8 @@ app.addEventListener('click', async e => {
   else if (a === 'claim') { await write(() => db.doc('config/admin').set({ uid: me, at: now() }), 'אתה המנהל עכשיו') }
   else if (a === 'savenick') {
     const n = (D.nick.v || '').trim(); if (!n) { toast('צריך שם'); return }
-    await write(() => db.doc('players/' + me).set({ nick: n.slice(0, 24), joined: now() }));
+    const okN = await write(() => db.doc('players/' + me).set({ nick: n.slice(0, 24), joined: now() }));
+    if (okN && !helpSeen()) { view = { name: 'help', v: null }; render(); scrollTo(0, 0) }
   }
   else if (a === 'create') {
     const t = topicOf('new'); if (!t.text) { toast('צריך נושא'); return }
