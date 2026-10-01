@@ -48,7 +48,7 @@
   --pink:#FF6B98;--pink-ink:#1A0F22;--mint:#4BE0A3;--chip:#30264F;--warn:#F5A26B;
     --notes:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cg fill='%23F2EDFF' fill-opacity='.07'%3E%3Cg transform='translate(34 70) rotate(-14)'%3E%3Cellipse rx='8' ry='5.5' transform='rotate(-22)'/%3E%3Crect x='5.6' y='-34' width='2.4' height='34'/%3E%3Cpath d='M8 -34q12 7 9 21q-3-9-9-12z'/%3E%3C/g%3E%3Cg transform='translate(130 46) rotate(10)'%3E%3Cellipse rx='7' ry='5' transform='rotate(-22)'/%3E%3Cellipse cx='26' cy='-4' rx='7' ry='5' transform='rotate(-22 26 -4)'/%3E%3Crect x='4.8' y='-30' width='2.2' height='30'/%3E%3Crect x='30.8' y='-34' width='2.2' height='30'/%3E%3Cpath d='M4.8 -30L33 -34v5L4.8 -25z'/%3E%3C/g%3E%3Cg transform='translate(92 160) rotate(8)'%3E%3Cellipse rx='7.5' ry='5.2' transform='rotate(-22)'/%3E%3Crect x='5.2' y='-32' width='2.3' height='32'/%3E%3C/g%3E%3Cg transform='translate(186 168) rotate(-20) scale(.75)'%3E%3Cellipse rx='8' ry='5.5' transform='rotate(-22)'/%3E%3Crect x='5.6' y='-34' width='2.4' height='34'/%3E%3Cpath d='M8 -34q12 7 9 21q-3-9-9-12z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
-*,*::before,*::after{box-sizing:inherit}
+*,*::before,*::after{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
 body{margin:0;background:var(--bg) var(--notes) repeat fixed;background-size:220px 220px;min-height:100vh;color:var(--ink);font-family:"Assistant",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-size:17px;line-height:1.5;-webkit-tap-highlight-color:transparent}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -208,6 +208,14 @@ button.lb:first-of-type .rk{color:var(--pink)}
 .hitem p{margin:2px 0 0;font-size:15px;color:var(--muted);line-height:1.45}
 .hitem.warn{box-shadow:inset 0 0 0 2px var(--warn)}
 .hitem.warn p{color:var(--ink)}
+.logrow{padding:8px 0;border-bottom:1px solid var(--line);line-height:1.35}
+details summary{list-style-position:inside}
+textarea,input,select{max-width:100%}
+.langban{display:flex;align-items:center;justify-content:center;gap:10px;border-radius:18px;padding:14px;margin:-4px 0 16px;font-size:24px;font-weight:800;color:#fff;background:var(--ink)}
+.langban.he{background:#1D5FBF}.langban.en{background:#C2183B}
+.langban span{font-size:30px}
+.langtag{display:inline-block;font-size:13px;font-weight:800;border-radius:999px;padding:2px 10px;margin-bottom:6px;color:#fff}
+.langtag.he{background:#1D5FBF}.langtag.en{background:#C2183B}
 </style>
 </head>
 <body>
@@ -248,8 +256,32 @@ const SUGGEST = [
   { t: 'שיר לנסיעה בלילה', m: 'כמה זה גורם לך לבהות בגשם', f: false },
   { t: 'השיר הכי ישראלי שיש', m: 'כמה זה מקורי', f: false },
   { t: 'שיר שאמא שלכם אוהבת', m: 'כמה זה נוגע ללב', f: false },
-  { t: 'שיר שהיה מתנגן כשאתם נכנסים לקרב', m: 'כמה זה מקפיץ', f: false }
+  { t: 'שיר שהיה מתנגן כשאתם נכנסים לקרב', m: 'כמה זה מקפיץ', f: false },
+  { t: 'שיר שמתאים לפרסומת לביטוח', m: 'כמה הבחירה הצחיקה אותך', f: true },
+  { t: 'שיר שהיה צריך להיות פסקול החיים שלכם', m: 'כמה זה נוגע ללב', f: false },
+  { t: 'השיר הכי טוב לשטיפת כלים', m: 'כמה זה מקפיץ', f: false },
+  { t: 'שיר שמתאים להודעה שפוטרתם', m: 'כמה הבחירה הצחיקה אותך', f: true },
+  { t: 'שיר שכולם מכירים ואף אחד לא יודע את המילים', m: 'כמה הבחירה הצחיקה אותך', f: true },
+  { t: 'שיר שגורם לכם להתגעגע למישהו', m: 'כמה זה נוגע ללב', f: false },
+  { t: 'שיר שמתאים לכניסה של מתאגרף', m: 'כמה זה מקפיץ', f: false },
+  { t: 'שיר שהייתם שמים בחתונה של האויב שלכם', m: 'כמה הבחירה הצחיקה אותך', f: true },
+  { t: 'שיר שמתאים לבוקר יום ראשון', m: 'כמה זה גורם לך לבהות בגשם', f: false },
+  { t: 'שיר שמזכיר לכם את הצבא', m: 'כמה זה נוגע ללב', f: false },
+  { t: 'שיר שאתם מתביישים שאתם אוהבים', m: 'כמה זה מביך', f: true },
+  { t: 'שיר שמתאים לסצנת פרידה בטלנובלה', m: 'כמה הבחירה הצחיקה אותך', f: true },
+  { t: 'שיר לנסיעה לאילת', m: 'כמה זה מקפיץ', f: false },
+  { t: 'השיר הכי מוזר ששמעתם בחיים', m: 'כמה זה מקורי', f: false },
+  { t: 'שיר שאפשר לשים בלופ שעה בלי להשתגע', m: 'כמה זה מקפיץ', f: false }
 ];
+function ideaChips(key) {
+  const norm = x => (x || '').trim();
+  const used = new Set([...S.rounds.map(r => norm(r.topic)), ...S.topics.map(t => norm(t.text))]);
+  const ideas = SUGGEST.filter(x => !used.has(x.t));
+  if (!ideas.length) return '';
+  const day = new Date().toDateString();
+  const list = ideas.slice().sort((a, b) => hash(a.t + day + key) - hash(b.t + day + key)).slice(0, 5);
+  return `<p class="hint" style="margin:-6px 0 8px">רעיונות לדוגמה, לחיצה ממלאת:</p><div class="chips">${list.map(x => `<button data-act="idea" data-k="${esc(key)}" data-v="${esc(x.t)}">${esc(x.t)}</button>`).join('')}</div>`;
+}
 
 let db = null, me = null, ready = false, fatal = null;
 const S = { rounds: [], picks: [], ratings: [], players: {}, topics: [], admin: null,
@@ -433,6 +465,49 @@ function fallbackTopic(seed) {
   return { topic: s.t, metric2: s.m, funny: s.f };
 }
 
+/* ---------- admin results log ---------- */
+let logsSub = null; const logTried = {};
+function buildLog(r) {
+  const d = roundData(r);
+  return {
+    rid: r.id, topic: r.topic, metric2: m2of(r), funny: funnyOf(r), createdAt: r.createdAt, pickEnds: r.pickEnds, rateEnds: r.rateEnds, loggedAt: now(),
+    results: d.rows.map((x, i) => ({ rank: i + 1, uid: x.uid, nick: nameOf(x.uid), title: x.title, artist: x.artist || '', url: x.url || '', locked: !!x.locked,
+      fit: r1(x.fit), fun: r1(x.fun), raters: x.n, pts: x.pts, complete: x.complete, guessedRight: x.gRight, guessedTotal: x.gTot, hive: x.hive })),
+    bonus: Object.entries(d.bonus).map(([u, c]) => ({ uid: u, nick: nameOf(u), bonus: c })),
+    ratings: S.ratings.filter(x => x.rid === r.id).map(x => ({ rater: nameOf(x.uid), raterUid: x.uid, locked: !!x.locked,
+      scores: Object.entries(x.scores || {}).map(([u, v]) => ({ song: nameOf(u), fit: v.fit || 0, fun: v.fun || 0 })),
+      guesses: Object.entries(x.guesses || {}).map(([u, g]) => ({ song: nameOf(u), guess: nameOf(g), right: u === g })) }))
+  };
+}
+function ensureLogs() {
+  if (!isAdmin() || !S.loaded.logs) return;
+  doneRounds().forEach(r => {
+    if (S.logs[r.id] || logTried[r.id]) return;
+    logTried[r.id] = 1;
+    db.doc('logs/' + r.id).set(buildLog(r)).catch(() => { setTimeout(() => { logTried[r.id] = 0 }, 30000) });
+  });
+}
+function historyView() {
+  const L = Object.values(S.logs || {}).sort((a, b) => b.createdAt - a.createdAt);
+  let h = `<button class="back" data-act="go" data-v="admin">→ ניהול</button><div class="display" style="font-size:48px;margin:4px 0 6px">היסטוריה</div>
+  <p class="hint" style="margin:0 0 14px">רק אתה רואה את זה. התוצאות נשמרות כאן אוטומטית בסוף כל סבב, כפי שהיו באותו רגע, גם אם הסבב יימחק אחר כך.</p>`;
+  if (!L.length) return h + `<p class="muted">עוד אין סבבים שהסתיימו.</p>`;
+  h += `<button class="btn ghost block" data-act="dlcsv" style="margin-bottom:14px">הורד הכל כקובץ אקסל (CSV)</button>`;
+  h += L.map(l => `<details class="panel" style="margin-bottom:10px"><summary><span><b>${esc(l.topic)}</b><small class="muted" style="display:block;font-size:13px">${fmtDate(l.createdAt)} · ${esc(l.metric2)} · ${l.results.length} שירים</small></span></summary>
+    <div style="margin-top:10px">${l.results.map(x => `<div class="logrow"><b>${x.rank}. ${esc(x.nick)}</b> <span class="muted">${esc(x.title)}${x.artist ? ' / ' + esc(x.artist) : ''}</span><div class="muted" style="font-size:13px">${x.pts} נק׳ · 🎯 ${x.fit} · ✨ ${x.fun} · ${x.raters} מדרגים · 🕵️ ${x.guessedRight}/${x.guessedTotal}${x.complete ? '' : ' · לא סיים לדרג'}${x.hive ? ' · 🐑' : ''}</div></div>`).join('')}
+    ${l.bonus.length ? `<div class="logrow"><b>בונוס ניחושים:</b> ${l.bonus.map(b => esc(b.nick) + ' +' + b.bonus).join(', ')}</div>` : ''}
+    <details style="margin-top:8px"><summary class="muted" style="font-size:14px">כל הדירוגים והניחושים</summary>${l.ratings.map(r => `<div class="logrow"><b>${esc(r.rater)}</b>${r.locked ? ' 🔒' : ''}<div class="muted" style="font-size:13px">${r.scores.map(s => esc(s.song) + ': 🎯' + s.fit + ' ✨' + s.fun).join(' | ')}</div>${r.guesses.length ? `<div class="muted" style="font-size:13px">ניחושים: ${r.guesses.map(g => esc(g.song) + ' ← ' + esc(g.guess) + (g.right ? ' ✓' : ' ✗')).join(' | ')}</div>` : ''}</div>`).join('')}</details></div></details>`).join('');
+  return h;
+}
+function downloadCsv() {
+  const L = Object.values(S.logs || {}).sort((a, b) => a.createdAt - b.createdAt);
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const rows = [['תאריך', 'נושא', 'מדד שני', 'מקום', 'שחקן', 'שיר', 'אמן', 'לינק', 'התאמה', 'מדד שני (ממוצע)', 'מדרגים', 'נקודות', 'סיים לדרג', 'ניחשו נכון', 'ניחושים עליו', 'בונוס ניחושים']];
+  L.forEach(l => l.results.forEach(x => rows.push([new Date(l.createdAt).toLocaleDateString('he-IL'), l.topic, l.metric2, x.rank, x.nick, x.title, x.artist, x.url, x.fit, x.fun, x.raters, x.pts, x.complete ? 'כן' : 'לא', x.guessedRight, x.guessedTotal, (l.bonus.find(b => b.uid === x.uid) || {}).bonus || 0])));
+  const blob = new Blob(['\ufeff' + rows.map(r => r.map(q).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'PeakTheVibe-history.csv'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove() }, 1000);
+}
+
 /* ---------- topic queue + daily rounds ---------- */
 const queue = () => S.topics.filter(t => t.status === 'approved').sort((a, b) => (a.order || 0) - (b.order || 0));
 const pendingTopics = () => S.topics.filter(t => t.status === 'pending').sort((a, b) => a.createdAt - b.createdAt);
@@ -452,7 +527,8 @@ async function ensureToday() {
   attempted[id] = true;
   const head = queue()[0];
   let topic, metric2, funny, tref = null;
-  if (head) { topic = head.text; metric2 = head.metric2 || DEFAULT_M.m; funny = head.funny !== false; tref = db.doc('topics/' + head.id) }
+  let lang = 'any';
+  if (head) { topic = head.text; metric2 = head.metric2 || DEFAULT_M.m; funny = head.funny !== false; lang = langOf(head); tref = db.doc('topics/' + head.id) }
   else {
     ({ topic, metric2, funny } = fallbackTopic(id));
   }
@@ -463,7 +539,7 @@ async function ensureToday() {
       const rs = await t.get(rref);
       if (rs.exists) return;
       if (tref) { const ts = await t.get(tref); if (!ts.exists || ts.data().status !== 'approved') throw new Error('stale') }
-      t.set(rref, { topic, metric2, funny, auto: true, by: 'auto', createdAt: st, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 });
+      t.set(rref, { topic, metric2, funny, lang, auto: true, by: 'auto', createdAt: st, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 });
       if (tref) t.update(tref, { status: 'used', usedOn: id });
     });
   } catch (e) { setTimeout(() => { attempted[id] = false }, 20000) }
@@ -474,6 +550,7 @@ function schedule() {
   const a = document.activeElement;
   if (a && app.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { pending = true } else render();
   ensureToday();
+  ensureLogs();
 }
 app.addEventListener('focusout', () => { if (!pending) return; setTimeout(() => { const a = document.activeElement; if (pending && !(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName))) { pending = false; render() } }, 0) });
 
@@ -490,7 +567,7 @@ function render() {
   if (fatal) { app.innerHTML = `<div class="empty">${LOGO('big')}<div class="display" style="margin-top:14px">PeakTheVibe</div><p class="muted">${esc(fatal)}</p></div>`; return }
   const L = S.loaded;
   if (!ready || !L.players || !L.rounds || !L.topics || !L.admin || !L.settings) { app.innerHTML = '<p class="muted" style="padding-top:40px;text-align:center">טוען…</p>'; return }
-  if (!S.players[me]) { app.innerHTML = nickView(); return }
+  if (!S.players[me] || !S.players[me].fullName) { app.innerHTML = nickView(); return }
   let body = '', rateBar = false;
   const v = view.name;
   if (v === 'round') { const r = S.rounds.find(x => x.id === view.v); if (r) { body = roundView(r); rateBar = body.includes('class="savebar"') } else body = homeView() }
@@ -498,6 +575,7 @@ function render() {
   else if (v === 'admin' && isAdmin()) body = adminView();
   else if (v === 'suggest') body = suggestView();
   else if (v === 'help') body = helpView();
+  else if (v === 'history' && isAdmin()) body = historyView();
   else if (v === 'board') body = boardView();
   else if (v === 'profile') body = profileView(view.v);
   else body = homeView();
@@ -525,12 +603,38 @@ function helpView() {
   <button class="btn block" style="margin-top:18px" data-act="helpdone">הבנתי, יאללה</button>`;
 }
 function nickView() {
-  const d = draft('nick', () => ({ v: '' }));
+  const ex = S.players[me];
+  const d = draft('nick', () => ({ v: ex ? ex.nick : '', full: '' }));
+  if (ex) return `<div style="padding-top:24px;text-align:center">${LOGO('big')}<div class="display" style="font-size:52px;margin:14px 0 10px">עוד פרט אחד</div></div>
+  <div class="panel"><p style="margin-top:0">היי ${esc(ex.nick)}, הוספנו שדה של שם מלא. הוא יוצג בקטן רק בפרופיל שלך.</p>
+  <label class="f" for="full">שם מלא</label><input id="full" class="field" data-f="nick.full" maxlength="40" value="${esc(d.full)}" placeholder="שם פרטי ושם משפחה">
+  <button class="btn block" data-act="savefull">שמור</button></div>${FOOT}`;
   return `<div style="padding-top:24px;text-align:center">${LOGO('big')}<div class="display" style="font-size:64px;margin:14px 0 10px">PeakTheVibe</div></div><div>
   <p>כל יום נושא חדש. בוחרים שיר שמתאים, מדרגים את השירים של כולם, מנחשים מי בחר מה, ומי שבחר הכי טוב לוקח.</p>
   <div class="panel" style="margin-top:22px"><label class="f" for="nick">איך יקראו לך במשחק?</label>
   <input id="nick" class="field" data-f="nick.v" maxlength="24" value="${esc(d.v)}" placeholder="למשל: נגה">
+  <p class="hint">הכינוי מוצג לכל המשתתפים במשחק.</p>
+  <label class="f" for="full">שם מלא</label><input id="full" class="field" data-f="nick.full" maxlength="40" value="${esc(d.full)}" placeholder="שם פרטי ושם משפחה">
+  <p class="hint">מוצג בקטן רק בפרופיל שלך.</p>
   <button class="btn block" data-act="savenick">יאללה, נכנסים</button></div></div>${FOOT}`;
+}
+const LANGS = { any: { l: 'כל שפה', ic: '🌍' }, he: { l: 'עברית', ic: '🇮🇱' }, en: { l: 'אנגלית', ic: '🇬🇧' } };
+const langOf = r => (r && LANGS[r.lang]) ? r.lang : 'any';
+function langPicker(key) {
+  const cur = (D[key] && D[key].lang) || 'any';
+  return `<label class="f" style="margin-top:14px">שפת השיר בסבב</label><div class="seg" style="margin-bottom:6px">${Object.entries(LANGS).map(([k, v]) => `<button class="${cur === k ? 'on' : ''}" data-act="lang" data-k="${esc(key)}" data-v="${k}">${v.ic} ${v.l}</button>`).join('')}</div>`;
+}
+function langBanner(r) {
+  const k = langOf(r); if (k === 'any') return '';
+  return `<div class="langban ${k}"><span>${LANGS[k].ic}</span><b>${k === 'he' ? 'שיר בעברית בלבד' : 'שיר באנגלית בלבד'}</b></div>`;
+}
+const hasHeb = s => /[\u0590-\u05FF]/.test(s || '');
+const hasLat = s => /[A-Za-z]/.test(s || '');
+function langWarning(r, title, artist) {
+  const k = langOf(r), txt = title + ' ' + (artist || '');
+  if (k === 'en' && hasHeb(txt)) return 'בסבב הזה השיר צריך להיות באנגלית, אבל שם השיר או האמן כתוב בעברית.';
+  if (k === 'he' && !hasHeb(title) && hasLat(title)) return 'בסבב הזה השיר צריך להיות בעברית, אבל שם השיר כתוב באותיות באנגלית.';
+  return '';
 }
 function metricPicker(key) {
   const d = D[key];
@@ -555,7 +659,7 @@ function homeView() {
     else if (ph === 'rate') { pill = '<span class="pill rate">מדרגים</span>'; c = 'var(--mint)'; info = `<span data-ends="${r.rateEnds}">${fmtLeft(r.rateEnds - now())}</span> לדירוג`; if (!rated) pill += ' <span class="pill">חסר הדירוג שלך</span>' }
     else { const w = roundData(r).rows[0]; pill = '<span class="pill">תוצאות</span>'; info = w && w.pts > 0 ? 'ניצח/ה: ' + esc(nameOf(w.uid)) : 'אין ניקוד'; c = 'var(--line)' }
     const cnt = isAdmin() && ph !== 'done' ? roundStatus(r).short : picks.length + ' שירים';
-    return `<button class="round" style="--c:${c}" data-act="open" data-v="${esc(r.id)}"><span class="display">${esc(r.topic)}</span><span class="meta"><span>${pill}</span><span>${info}</span></span><span class="meta" style="margin-top:4px"><span>${cnt}</span><span>${fmtDate(r.createdAt)}</span></span></button>`;
+    return `<button class="round" style="--c:${c}" data-act="open" data-v="${esc(r.id)}"><span class="display">${esc(r.topic)}</span>${langOf(r) !== 'any' ? `<span class="langtag ${langOf(r)}">${LANGS[langOf(r)].ic} ${langOf(r) === 'he' ? 'עברית בלבד' : 'אנגלית בלבד'}</span>` : ''}<span class="meta"><span>${pill}</span><span>${info}</span></span><span class="meta" style="margin-top:4px"><span>${cnt}</span><span>${fmtDate(r.createdAt)}</span></span></button>`;
   };
   return head + nextLine + (open.length ? `<h2>פתוחים עכשיו</h2>` + open.map(row).join('') : '') + (done.length ? `<h2>הסתיימו</h2>` + done.map(row).join('') : '');
 }
@@ -568,8 +672,8 @@ function newView() {
   <div class="panel">
   <label class="f" for="topic">הנושא</label>
   <textarea id="topic" class="field" data-f="new.t" maxlength="90">${esc(d.t)}</textarea>
-  <div class="chips">${SUGGEST.slice().sort((a, b) => hash(a.t + new Date().toDateString()) - hash(b.t + new Date().toDateString())).slice(0, 5).map((s, i) => `<button data-act="sugg" data-v="${esc(s.t)}">${esc(s.t)}</button>`).join('')}</div>
-  ${metricPicker('new')}
+  ${ideaChips('new')}
+  ${metricPicker('new')}${langPicker('new')}
   <div class="two" style="margin-top:14px"><div><label class="f">זמן לבחירה</label><select class="field" data-f="new.ph">${hoursOpt(d.ph)}</select></div>
   <div><label class="f">זמן לדירוג</label><select class="field" data-f="new.rh">${hoursOpt(d.rh)}</select></div></div>
   <button class="btn block" data-act="create" ${busy ? 'disabled' : ''}>פתח את הסבב עכשיו</button></div>`;
@@ -582,6 +686,7 @@ function suggestView() {
   <p class="hint" style="margin:0 0 14px">הנושא נשלח למנהל. אם יאושר, הוא ייכנס לתור ויעלה באחד הימים, בלי שיופיע מי כתב אותו.</p>
   <div class="panel"><label class="f" for="sgt">הנושא</label>
   <textarea id="sgt" class="field" data-f="sg.t" maxlength="90" placeholder="שיר שמתאים לבוס האחרון במשחק">${esc(d.t)}</textarea>
+  ${ideaChips('sg')}
   ${metricPicker('sg')}
   <button class="btn block" style="margin-top:14px" data-act="submittopic" ${busy ? 'disabled' : ''}>שלח למנהל</button></div>
   ${mine.length ? `<h2>הנושאים ששלחת</h2>` + mine.map(t => `<div class="qrow"><div class="qt">${esc(t.text)}</div><span class="pill ${t.status === 'used' ? 'rate' : ''}">${st[t.status] || ''}</span></div>`).join('') : ''}`;
@@ -590,23 +695,24 @@ function adminView() {
   const P = pendingTopics(), Q = queue();
   const s = draft('set', () => ({ sh: S.settings.startHour, ph: S.settings.pickHours, rh: S.settings.rateHours }));
   const first = nextAutoTime();
-  let h = `<div class="display" style="font-size:48px;margin:4px 0 14px">ניהול</div>`;
+  let h = `<div class="display" style="font-size:48px;margin:4px 0 14px">ניהול</div>
+  <button class="btn ghost block" data-act="go" data-v="history" style="margin-bottom:6px">📜 היסטוריית תוצאות (${Object.keys(S.logs || {}).length})</button>`;
   h += `<h2>ממתינים לאישור (${P.length})</h2>`;
   h += P.length ? P.map(t => {
-    const k = 'ed:' + t.id; draft(k, () => ({ t: t.text, m: t.metric2 || DEFAULT_M.m, f: t.funny !== false }));
+    const k = 'ed:' + t.id; draft(k, () => ({ t: t.text, m: t.metric2 || DEFAULT_M.m, f: t.funny !== false, lang: t.lang || 'any' }));
     return `<div class="panel" style="margin-bottom:10px"><p class="hint" style="margin:0 0 6px">נשלח ע״י ${esc(nameOf(t.by))}</p>
-    <textarea class="field" data-f="${k}.t" maxlength="90">${esc(D[k].t)}</textarea>${metricPicker(k)}
+    <textarea class="field" data-f="${k}.t" maxlength="90">${esc(D[k].t)}</textarea>${metricPicker(k)}${langPicker(k)}
     <div class="row-actions"><button class="btn" data-act="approve" data-v="${esc(t.id)}">אשר והכנס לתור</button><button class="btn ghost" data-act="reject" data-v="${esc(t.id)}">דחה</button></div></div>`;
   }).join('') : `<p class="muted">אין נושאים שממתינים.</p>`;
   h += `<h2>התור (${Q.length})</h2>`;
   h += Q.length ? Q.map((t, i) => {
     const d = new Date(first); d.setDate(d.getDate() + i);
-    return `<div class="qrow"><div class="qt">${esc(t.text)}<small>${fmtDate(d.getTime())} · ${esc(t.metric2 || DEFAULT_M.m)}</small></div>
+    return `<div class="qrow"><div class="qt">${esc(t.text)}<small>${fmtDate(d.getTime())} · ${esc(t.metric2 || DEFAULT_M.m)}${langOf(t) !== 'any' ? ' · ' + LANGS[langOf(t)].ic + ' ' + LANGS[langOf(t)].l : ''}</small></div>
     <span class="qbtns"><button data-act="qmove" data-v="${esc(t.id)}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="למעלה">▲</button><button data-act="qmove" data-v="${esc(t.id)}" data-d="1" ${i === Q.length - 1 ? 'disabled' : ''} aria-label="למטה">▼</button><button data-act="qdel" data-v="${esc(t.id)}" aria-label="מחק">✕</button></span></div>`;
   }).join('') : `<p class="muted">התור ריק. כשאין נושא בתור, נבחר נושא מהמאגר המובנה.</p>`;
   draft('add', () => ({ t: '', m: DEFAULT_M.m, f: true }));
   h += `<details class="panel" style="margin-top:10px"><summary><b>הוסף נושא ישר לתור</b></summary><div style="margin-top:12px">
-  <textarea class="field" data-f="add.t" maxlength="90">${esc(D.add.t)}</textarea>${metricPicker('add')}
+  <textarea class="field" data-f="add.t" maxlength="90">${esc(D.add.t)}</textarea>${ideaChips('add')}${metricPicker('add')}${langPicker('add')}
   <button class="btn block" style="margin-top:12px" data-act="addq">הוסף לסוף התור</button></div></details>`;
   h += `<h2>הסבב היומי</h2><div class="panel">
   <label class="f">שעת פתיחה כל יום</label><select class="field" data-f="set.sh">${Array.from({ length: 24 }, (_, i) => `<option value="${i}" ${i == s.sh ? 'selected' : ''}>${hh(i)}</option>`).join('')}</select>
@@ -617,7 +723,7 @@ function adminView() {
   const ina = inactiveSet(), pl = Object.entries(S.players).sort((a, b) => (a[1].joined || 0) - (b[1].joined || 0));
   h += `<h2>שחקנים (${pl.length - pl.filter(([u]) => ina.has(u)).length} פעילים מתוך ${pl.length})</h2>
   <p class="hint" style="margin:0 0 8px">שחקן לא פעיל לא נספר במונה "כולם נעלו". אם יבחר שיר, ישחק כרגיל.</p>`;
-  h += pl.map(([u, p]) => `<div class="qrow"><div class="qt">${esc(p.nick)}${u === me ? ' (את/ה)' : ''}<small>הצטרף/ה ${p.joined ? fmtDate(p.joined) : ''}, ${S.picks.filter(x => x.uid === u).length} שירים</small></div><button class="btn ${ina.has(u) ? 'ghost' : ''}" style="min-height:40px;padding:6px 14px;font-size:14px" data-act="toggleactive" data-v="${esc(u)}">${ina.has(u) ? 'לא פעיל' : 'פעיל'}</button></div>`).join('');
+  h += pl.map(([u, p]) => `<div class="qrow"><div class="qt">${esc(p.nick)}${u === me ? ' (את/ה)' : ''}<small>${p.fullName ? esc(p.fullName) + ', ' : ''}הצטרף/ה ${p.joined ? fmtDate(p.joined) : ''}, ${S.picks.filter(x => x.uid === u).length} שירים</small></div><button class="btn ${ina.has(u) ? 'ghost' : ''}" style="min-height:40px;padding:6px 14px;font-size:14px" data-act="toggleactive" data-v="${esc(u)}">${ina.has(u) ? 'לא פעיל' : 'פעיל'}</button></div>`).join('');
   return h;
 }
 function steps(ph) {
@@ -626,7 +732,7 @@ function steps(ph) {
 }
 function roundView(r) {
   const ph = phase(r), picks = S.picks.filter(p => p.rid === r.id), adm = isAdmin();
-  let h = `<button class="back" data-act="go" data-v="home">→ כל הסבבים</button><div class="display topic">${esc(r.topic)}</div>${steps(ph)}`;
+  let h = `<button class="back" data-act="go" data-v="home">→ כל הסבבים</button><div class="display topic">${esc(r.topic)}</div>${langBanner(r)}${steps(ph)}`;
   const legend = `<p class="legend">🎯 התאמה לנושא<br>✨ ${esc(m2of(r))}</p>`;
   if (ph === 'pick') {
     const mine = picks.find(p => p.uid === me), k = 'pk:' + r.id;
@@ -635,7 +741,7 @@ function roundView(r) {
     markSeen(r.id);
     if (mine && mine.locked) h += `<div class="panel lockcard"><div class="lk">🔒</div><b>הבחירה שלך נעולה</b><div class="t">${esc(mine.title)}</div><div class="muted">${esc(mine.artist || '')}</div></div>`;
     else h += `<div class="panel">${mine ? `<div class="mine"><b>טיוטה שמורה:</b> ${esc(mine.title)}${mine.artist ? ' / ' + esc(mine.artist) : ''}<div class="hint" style="margin:4px 0 0">אפשר לשנות עד שנועלים. טיוטה שלא ננעלה נספרת בסוף הזמן.</div></div>` : ''}
-      <label class="f" for="pt">שם השיר</label><input id="pt" class="field" data-f="${k}.title" maxlength="80" value="${esc(d.title)}">
+      ${langOf(r) !== 'any' ? `<p class="hint" style="margin:0 0 10px;color:var(--ink)">${LANGS[langOf(r)].ic} זכרו: ${langOf(r) === 'he' ? 'שיר בעברית' : 'שיר באנגלית'} בלבד בסבב הזה.</p>` : ''}<label class="f" for="pt">שם השיר</label><input id="pt" class="field" data-f="${k}.title" maxlength="80" value="${esc(d.title)}">
       <label class="f" for="pa">אמן</label><input id="pa" class="field" data-f="${k}.artist" maxlength="60" value="${esc(d.artist)}">
       <label class="f" for="pu">לינק (לא חובה)</label><input id="pu" class="field" data-f="${k}.url" inputmode="url" dir="ltr" value="${esc(d.url)}" placeholder="Spotify / Apple Music / YouTube">
       <p class="hint">מדביקים לינק מכל אפליקציה. כל אחד יוכל לפתוח את השיר באפליקציה שלו.</p>
@@ -714,7 +820,7 @@ function profileView(uid) {
   const T = titles().filter(t => t.u.includes(uid));
   const stat = (ic, l, v) => `<div class="stat"><span>${ic}</span><b>${v}</b><small>${l}</small></div>`;
   const recent = songs.map(p => ({ p, r: S.rounds.find(r => r.id === p.rid) })).filter(x => x.r).sort((a, b) => b.r.createdAt - a.r.createdAt).slice(0, 10);
-  let h = `<button class="back" data-act="go" data-v="board">→ טבלה</button><div class="display topic" style="font-size:56px">${esc(nameOf(uid))}</div>`;
+  let h = `<button class="back" data-act="go" data-v="board">→ טבלה</button><div class="display topic" style="font-size:56px;margin-bottom:${S.players[uid] && S.players[uid].fullName ? '2px' : '18px'}">${esc(nameOf(uid))}</div>${S.players[uid] && S.players[uid].fullName ? `<p class="muted" style="margin:0 0 16px;font-size:14px">${esc(S.players[uid].fullName)}</p>` : ''}`;
   if (T.length) h += `<div class="badges">${T.map(t => `<span class="badge">${t.ic} ${t.n}</span>`).join('')}</div>`;
   h += `<div class="stats">
     ${stat('🏆', 'ניצחונות יומיים', ag.wins)}
@@ -756,7 +862,7 @@ function onField(e) {
 app.addEventListener('input', onField);
 app.addEventListener('change', onField);
 const maxOrder = () => S.topics.reduce((m, t) => Math.max(m, t.order || 0), 0);
-const topicOf = k => ({ text: (D[k].t || '').trim().slice(0, 90), metric2: (D[k].m || '').trim().slice(0, 50) || DEFAULT_M.m, funny: !!D[k].f });
+const topicOf = k => ({ text: (D[k].t || '').trim().slice(0, 90), metric2: (D[k].m || '').trim().slice(0, 50) || DEFAULT_M.m, funny: !!D[k].f, lang: LANGS[D[k].lang] ? D[k].lang : 'any' });
 
 app.addEventListener('click', async e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
@@ -766,18 +872,27 @@ app.addEventListener('click', async e => {
   else if (a === 'open') { view = { name: 'round', v }; render(); scrollTo(0, 0) }
   else if (a === 'prof') { view = { name: 'profile', v }; render(); scrollTo(0, 0) }
   else if (a === 'bm') { boardMode = v; render() }
+  else if (a === 'lang') { const k = b.dataset.k; if (!D[k]) return; D[k].lang = v; render() }
+  else if (a === 'idea') { const x = SUGGEST.find(i => i.t === v); const k = b.dataset.k; if (!x || !D[k]) return; Object.assign(D[k], { t: x.t, m: x.m, f: x.f }); render() }
+  else if (a === 'dlcsv') { downloadCsv() }
   else if (a === 'sugg') { const s = SUGGEST.find(x => x.t === v); Object.assign(D.new, { t: s.t, m: s.m, f: s.f }); render() }
   else if (a === 'metric') { const x = METRICS[+b.dataset.i]; Object.assign(D[b.dataset.k], { m: x.m, f: x.f }); render() }
   else if (a === 'claim') { await write(() => db.doc('config/admin').set({ uid: me, at: now() }), 'אתה המנהל עכשיו') }
   else if (a === 'savenick') {
-    const n = (D.nick.v || '').trim(); if (!n) { toast('צריך שם'); return }
-    const okN = await write(() => db.doc('players/' + me).set({ nick: n.slice(0, 24), joined: now() }));
+    const n = (D.nick.v || '').trim(), full = (D.nick.full || '').trim();
+    if (!n) { toast('צריך כינוי'); return }
+    if (!full) { toast('צריך שם מלא'); return }
+    const okN = await write(() => db.doc('players/' + me).set({ nick: n.slice(0, 24), fullName: full.slice(0, 40), joined: now() }));
     if (okN && !helpSeen()) { view = { name: 'help', v: null }; render(); scrollTo(0, 0) }
+  }
+  else if (a === 'savefull') {
+    const full = (D.nick.full || '').trim(); if (!full) { toast('צריך שם מלא'); return }
+    await write(() => db.doc('players/' + me).update({ fullName: full.slice(0, 40) }), 'נשמר');
   }
   else if (a === 'create') {
     const t = topicOf('new'); if (!t.text) { toast('צריך נושא'); return }
     const id = 'r' + now() + Math.random().toString(36).slice(2, 6), t0 = now(), pe = t0 + D.new.ph * 3600e3;
-    const ok = await write(() => db.doc('rounds/' + id).set({ topic: t.text, metric2: t.metric2, funny: t.funny, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + D.new.rh * 3600e3 }), 'הסבב נפתח');
+    const ok = await write(() => db.doc('rounds/' + id).set({ topic: t.text, metric2: t.metric2, funny: t.funny, lang: t.lang, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + D.new.rh * 3600e3 }), 'הסבב נפתח');
     if (ok) { delete D.new; view = { name: 'round', v: id }; render(); scrollTo(0, 0) }
   }
   else if (a === 'submittopic') {
@@ -811,7 +926,7 @@ app.addEventListener('click', async e => {
   }
   else if (a === 'nextnow') {
     const head = queue()[0];
-    const t = head ? { topic: head.text, metric2: head.metric2 || DEFAULT_M.m, funny: head.funny !== false } : fallbackTopic('n' + now());
+    const t = head ? { topic: head.text, metric2: head.metric2 || DEFAULT_M.m, funny: head.funny !== false, lang: langOf(head) } : fallbackTopic('n' + now());
     if (!confirm('לפתוח עכשיו סבב עם הנושא: "' + t.topic + '"?')) return;
     const id = 'r' + now() + Math.random().toString(36).slice(2, 6), t0 = now(), pe = t0 + S.settings.pickHours * 3600e3;
     const ok = await write(() => { const w = db.batch(); w.set(db.doc('rounds/' + id), { ...t, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 }); if (head) w.update(db.doc('topics/' + head.id), { status: 'used', usedOn: id }); return w.commit() }, 'הסבב נפתח');
@@ -823,6 +938,8 @@ app.addEventListener('click', async e => {
     const d = D['pk:' + r.id], title = (d.title || '').trim();
     if (!title) { toast('צריך שם שיר'); return }
     const url = (d.url || '').trim(); if (url && !safeUrl(url)) { toast('הלינק צריך להתחיל ב-https'); return }
+    const lw = langWarning(r, title, (d.artist || '').trim());
+    if (lw && !confirm('⚠️ ' + lw + '\n\nבטוח שזה השיר הנכון? אם השיר באמת ' + (langOf(r) === 'he' ? 'בעברית' : 'באנגלית') + ' ורק נכתב אחרת, אפשר להמשיך.')) return;
     if (lock && !confirm('לנעול את "' + title + '"? אחרי הנעילה אי אפשר לשנות.')) return;
     await write(() => db.doc('picks/' + r.id + '__' + me).set({ rid: r.id, uid: me, title: title.slice(0, 80), artist: (d.artist || '').trim().slice(0, 60), url, locked: lock, at: now(), ...(lock ? { lockedAt: now() } : {}) }), lock ? 'הבחירה ננעלה 🔒' : 'הטיוטה נשמרה');
   }
@@ -840,8 +957,20 @@ app.addEventListener('click', async e => {
     rateDraft[r.id] = { scores: JSON.parse(JSON.stringify(scores)), guesses: { ...guesses } };
     await write(() => db.doc('ratings/' + r.id + '__' + me).set({ rid: r.id, uid: me, scores, guesses, locked: lock, at: now() }), lock ? 'הדירוג ננעל 🔒' : 'נשמר');
   }
-  else if (a === 'endpick') { const r = S.rounds.find(x => x.id === view.v); if (!r) return; const t = now(); await write(() => db.doc('rounds/' + r.id).update({ pickEnds: t, rateEnds: t + (r.rateEnds - r.pickEnds) }), 'שלב הדירוג התחיל') }
-  else if (a === 'endrate') { const r = S.rounds.find(x => x.id === view.v); if (!r) return; await write(() => db.doc('rounds/' + r.id).update({ rateEnds: now() }), 'התוצאות נחשפו') }
+  else if (a === 'endpick') { const r = S.rounds.find(x => x.id === view.v); if (!r) return;
+    const st = roundStatus(r);
+    if (!st.all) {
+      const miss = st.groups.filter(g => g.l !== 'נעלו').flatMap(g => g.u);
+      const none = st.groups.filter(g => g.l === 'נכנסו ועוד לא בחרו' || g.l === 'עוד לא נכנסו').flatMap(g => g.u);
+      if (!confirm(`עוד לא כולם נעלו (${miss.length}: ${miss.map(nameOf).join(', ')}).\n\nמי ששמר טיוטה ישתתף עם הטיוטה. מי שלא בחר בכלל${none.length ? ' (' + none.map(nameOf).join(', ') + ')' : ''} לא ישתתף בסבב.\n\nלעבור לדירוג בכל זאת?`)) return;
+    }
+    const t = now(); await write(() => db.doc('rounds/' + r.id).update({ pickEnds: t, rateEnds: t + (r.rateEnds - r.pickEnds) }), 'שלב הדירוג התחיל') }
+  else if (a === 'endrate') { const r = S.rounds.find(x => x.id === view.v); if (!r) return;
+    const st = roundStatus(r);
+    if (!st.all) {
+      const miss = st.groups.filter(g => g.l !== 'נעלו דירוג').flatMap(g => g.u).filter(u => st.pickers.has(u));
+      if (!confirm(`עוד לא כולם נעלו את הדירוג (${miss.length}: ${miss.map(nameOf).join(', ')}).\n\nמי שבחר שיר ולא דירג את כל השירים יקבל 0.\n\nלחשוף תוצאות בכל זאת?`)) return;
+    } await write(() => db.doc('rounds/' + r.id).update({ rateEnds: now() }), 'התוצאות נחשפו') }
   else if (a === 'copylist') {
     const r = S.rounds.find(x => x.id === view.v); if (!r) return;
     const ps = S.picks.filter(p => p.rid === r.id);
@@ -872,7 +1001,11 @@ setInterval(() => {
     db.collection('ratings').onSnapshot(s => { S.ratings = s.docs.map(x => x.data()); schedule() }, err);
     db.collection('players').onSnapshot(s => { const m = {}; s.docs.forEach(x => m[x.id] = x.data()); S.players = m; S.loaded.players = true; schedule() }, err);
     db.collection('topics').onSnapshot(s => { S.topics = s.docs.map(x => ({ id: x.id, ...x.data() })); S.loaded.topics = true; schedule() }, err);
-    db.doc('config/admin').onSnapshot(s => { S.admin = s.exists ? s.data().uid : null; S.loaded.admin = true; schedule() }, err);
+    db.doc('config/admin').onSnapshot(s => {
+      S.admin = s.exists ? s.data().uid : null; S.loaded.admin = true;
+      if (S.admin === me && !logsSub) logsSub = db.collection('logs').onSnapshot(q => { const m = {}; q.docs.forEach(x => m[x.id] = x.data()); S.logs = m; S.loaded.logs = true; schedule() }, () => { });
+      schedule();
+    }, err);
     db.doc('config/settings').onSnapshot(s => { S.settings = { startHour: 10, pickHours: 24, rateHours: 24, inactive: [], ...(s.exists ? s.data() : {}) }; S.loaded.settings = true; delete D.set; schedule() }, err);
     render();
   });
