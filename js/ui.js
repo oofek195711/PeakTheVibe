@@ -98,7 +98,7 @@ function render() {
   if (window.scrollY !== y) window.scrollTo(0, y);
 }
 const LOGO = (cls) => `<span class="logo ${cls || ''}"><img src="PeakTheVibeLogo.png" alt=""></span>`;
-const FOOT = `<footer class="foot">© ${new Date().getFullYear()} PeakTheVibe. כל הזכויות שמורות לאופק טלקר.</footer>`;
+const FOOT = `<footer class="foot">© ${new Date().getFullYear()} PeakTheVibe. כל הזכויות שמורות לאופק טלקר.<span class="ver">גרסה ${APP_VERSION}</span></footer>`;
 function helpSeen() { try { return localStorage.getItem('ptv_help') === '1' } catch (_) { return true } }
 function markHelp() { try { localStorage.setItem('ptv_help', '1') } catch (_) { } }
 function helpView() {
@@ -178,9 +178,9 @@ function songCard(p, o) {
 function searchResultsHtml(k) {
   const st = searchState[k] || {};
   const spin = st.loading ? `<p class="sstatus">מחפש…</p>` : '';
-  if (st.error) return `<p class="sstatus">${esc(st.error)}</p>`;
+  if (st.error) return `<p class="sstatus">${esc(st.error)}${st.code ? `<span class="scode">קוד: ${esc(st.code)}</span>` : ''}</p>`;
   if (!st.results || !st.results.length) return spin;
-  return spin + `<div class="sresults ${st.loading ? 'dim' : ''}">${st.results.map((x, i) => `<button class="sres" data-act="pickres" data-k="${esc(k)}" data-i="${i}">${artHtml(x, 'sm')}<span class="sinfo"><span class="t">${esc(x.title)}</span><span class="a">${esc(x.artist)}${x.album ? ' · ' + esc(x.album) : ''}</span></span><span class="src">Apple Music</span></button>`).join('')}</div>`;
+  return spin + `<div class="sresults ${st.loading ? 'dim' : ''}">${st.results.map((x, i) => `<button class="sres" data-act="pickres" data-k="${esc(k)}" data-i="${i}">${artHtml(x, 'sm')}<span class="sinfo"><span class="t">${esc(x.title)}</span><span class="a">${esc(x.artist)}${x.album ? ' · ' + esc(x.album) : ''}</span></span><span class="src">${x.source === 'deezer' ? 'Deezer' : 'Apple Music'}</span></button>`).join('')}</div>`;
 }
 function pickFormHtml(r, mine, k, d) {
   const langHint = langOf(r) !== 'any' ? `<p class="hint" style="margin:0 0 10px;color:var(--ink)">${LANGS[langOf(r)].ic} זכרו: ${langOf(r) === 'he' ? 'שיר בעברית' : 'שיר באנגלית'} בלבד בסבב הזה.</p>` : '';
