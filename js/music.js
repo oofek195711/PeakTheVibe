@@ -39,6 +39,7 @@ const ITUNES_URL = 'https://itunes.apple.com/search?media=music&entity=song&limi
 /* Apple: try a normal request first, then JSONP. Returns raw iTunes results. */
 async function itunesSearch(term) {
   const url = ITUNES_URL + encodeURIComponent(term);
+  let fetchErr = '';
   try {
     const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const t = setTimeout(() => ctl && ctl.abort(), 6000);
@@ -49,10 +50,14 @@ async function itunesSearch(term) {
       return (d && d.results) || [];
     } finally { clearTimeout(t) }
   } catch (e) {
-    const d = await jsonp(url, 6000);
-    return (d && d.results) || [];
+    fetchErr = shortErr(e);
+    try {
+      const d = await jsonp(url, 6000);
+      return (d && d.results) || [];
+    } catch (e2) { throw new Error('fetch=' + fetchErr + ' jsonp=' + shortErr(e2)) }
   }
 }
+const shortErr = e => String((e && (e.name === 'AbortError' ? 'timeout' : e.message)) || 'error').slice(0, 40);
 function songFromItunes(x) {
   const art = String(x.artworkUrl100 || '').replace(/\/\d+x\d+bb\./, '/300x300bb.');
   return {
@@ -94,14 +99,39 @@ async function musicSearch(term) {
   for (const src of order) {
     try {
       const list = src === 'itunes' ? (await itunesSearch(term)).map(songFromItunes) : await deezerSearch(term);
+      noteSearchDiag(src, 'ok');
       preferredSource = src;
       if (list.length) return list;
       empty = list;
-    } catch (e) { errs.push(src + ':' + ((e && e.message) || 'error')) }
+    } catch (e) { const m = (e && e.message) || 'error'; errs.push(src + ':' + m); noteSearchDiag(src, m) }
   }
   if (empty) return empty;
   throw new Error(errs.join(', '));
 }
+const NO_RESULTS = 'לא נמצאו תוצאות. שירים ישראליים רשומים לפעמים באנגלית, נסו גם כך (למשל Sigapo), או הוסיפו את השיר ידנית.';
+
+/* ---------- search diagnostics ----------
+   Remembers, per device, whether Apple / Deezer answered, and saves it once per
+   change on the player's own record so the admin can see which devices are blocked. */
+const searchDiag = {};
+let diagSaved = '';
+function deviceLabel() {
+  const ua = navigator.userAgent || '';
+  const os = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : /Mac OS X/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'אחר';
+  const iosv = (ua.match(/OS (\d+)_/) || [])[1];
+  const br = /Instagram/.test(ua) ? 'Instagram' : /FBAN|FBAV/.test(ua) ? 'Facebook' : /WhatsApp/.test(ua) ? 'WhatsApp' : /CriOS/.test(ua) ? 'Chrome' : /FxiOS|Firefox/.test(ua) ? 'Firefox' : /EdgiOS|Edg\//.test(ua) ? 'Edge' : /SamsungBrowser/.test(ua) ? 'Samsung' : /Chrome\//.test(ua) ? 'Chrome' : /Safari/.test(ua) ? 'Safari' : 'דפדפן';
+  const home = (window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches)) ? ', מסך הבית' : '';
+  return os + (iosv && (os === 'iPhone' || os === 'iPad') ? ' ' + iosv : '') + ', ' + br + home;
+}
+function noteSearchDiag(src, status) {
+  searchDiag[src] = String(status).slice(0, 90);
+  const d = { itunes: searchDiag.itunes || '', deezer: searchDiag.deezer || '', device: deviceLabel(), ver: APP_VERSION };
+  const sig = d.itunes + '|' + d.deezer + '|' + d.device + '|' + d.ver;
+  if (sig === diagSaved || !db || !me || !S.players[me]) return;
+  diagSaved = sig;
+  db.doc('players/' + me).update({ diag: { ...d, at: now() } }).catch(() => { diagSaved = '' });
+}
+
 const searchCache = new Map();
 let searchTimer = null;
 /* Called on every keystroke: waits until typing pauses, then searches. */
@@ -117,7 +147,7 @@ async function runSongSearch(key) {
   const q = (d.q || '').trim();
   if (q.length < 2) { delete searchState[key]; updateSearchResults(key); return }
   const cached = searchCache.get(q.toLowerCase());
-  if (cached) { searchState[key] = { q, loading: false, results: cached, error: cached.length ? '' : 'לא נמצאו תוצאות. נסו לנסח אחרת, או הוסיפו את השיר ידנית.' }; updateSearchResults(key); return }
+  if (cached) { searchState[key] = { q, loading: false, results: cached, error: cached.length ? '' : NO_RESULTS }; updateSearchResults(key); return }
   const prev = searchState[key];
   searchState[key] = { q, loading: true, results: prev ? prev.results : [], error: '' };
   updateSearchResults(key);
@@ -128,7 +158,7 @@ async function runSongSearch(key) {
     const top = list.slice(0, 10);
     searchCache.set(q.toLowerCase(), top);
     if (!searchState[key] || searchState[key].q !== q) return; // a newer search is already running
-    searchState[key] = { q, loading: false, results: top, error: top.length ? '' : 'לא נמצאו תוצאות. נסו לנסח אחרת, או הוסיפו את השיר ידנית.' };
+    searchState[key] = { q, loading: false, results: top, error: top.length ? '' : NO_RESULTS };
   } catch (e) {
     if (!searchState[key] || searchState[key].q !== q) return;
     searchState[key] = { q, loading: false, results: [], error: 'החיפוש לא הצליח. בדקו חיבור לאינטרנט, או הוסיפו את השיר ידנית.', code: String((e && e.message) || '') };

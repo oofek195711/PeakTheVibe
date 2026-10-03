@@ -211,6 +211,12 @@ function waitView() {
   <p class="hint" style="margin:0 0 14px">המנהל צריך לאשר שזה באמת את/ה. אפשר לשלוח לו הודעה. ברגע שיאשר, החשבון ייפתח כאן לבד.</p>
   <button class="btn ghost block" data-act="cancelrestore">ביטול הבקשה</button></div>${FOOT}`;
 }
+function diagAdminHtml() {
+  const rows = Object.entries(S.players).filter(([, p]) => p.diag).sort((a, b) => (b[1].diag.at || 0) - (a[1].diag.at || 0));
+  if (!rows.length) return `<details data-k="diag" class="panel" style="margin-top:10px"><summary><b>🩺 אבחון חיפוש</b></summary><p class="hint" style="margin:8px 0 0">עוד אין נתונים. הנתונים נאספים כששחקן מחפש שיר בפעם הראשונה בגרסה הזו.</p></details>`;
+  const st = v => !v ? '<span class="muted">לא נוסה</span>' : v === 'ok' ? '<b class="dok">✓ עובד</b>' : `<b class="dbad">✗ חסום</b> <span class="dcode">${esc(v)}</span>`;
+  return `<details data-k="diag" class="panel" style="margin-top:10px"><summary><b>🩺 אבחון חיפוש (${rows.length})</b></summary><div style="margin-top:8px">${rows.map(([u, p]) => `<div class="logrow"><b>${esc(p.nick)}</b> <span class="muted" style="font-size:13px">${esc(p.diag.device || '')}, גרסה ${esc(p.diag.ver || '?')}</span><div style="font-size:13px">Apple: ${st(p.diag.itunes)}</div><div style="font-size:13px">Deezer: ${st(p.diag.deezer)}</div></div>`).join('')}</div></details>`;
+}
 function identityAdminHtml() {
   const pend = (S.links || []).filter(l => l.status === 'pending').sort((a, b) => (a.at || 0) - (b.at || 0));
   const appr = (S.links || []).filter(l => l.status === 'approved');
@@ -284,7 +290,7 @@ function adminView() {
   const s = draft('set', () => ({ sh: S.settings.startHour, ph: S.settings.pickHours, rh: S.settings.rateHours }));
   const first = nextAutoTime();
   let h = `<div class="display" style="font-size:48px;margin:4px 0 14px">ניהול</div>
-  <button class="btn ghost block" data-act="go" data-v="history" style="margin-bottom:6px">📜 היסטוריית תוצאות (${Object.keys(S.logs || {}).length})</button>` + identityAdminHtml();
+  <button class="btn ghost block" data-act="go" data-v="history" style="margin-bottom:6px">📜 היסטוריית תוצאות (${Object.keys(S.logs || {}).length})</button>` + identityAdminHtml() + diagAdminHtml();
   h += `<h2>ממתינים לאישור (${P.length})</h2>`;
   h += P.length ? P.map(t => {
     const k = 'ed:' + t.id; draft(k, () => ({ t: t.text, m: t.metric2 || DEFAULT_M.m, f: t.funny !== false, lang: t.lang || 'any' }));
