@@ -283,3 +283,5 @@ button.qrow.pickme{width:100%;border:0;text-align:right;cursor:pointer}
 .sbar .field{padding-inline-start:42px}
 .sstatus{font-size:13px;color:var(--muted);margin:6px 2px}
 .sresults.dim{opacity:.55;transition:opacity .15s}
+.scode{display:block;font-size:11px;opacity:.7;margin-top:2px;direction:ltr;text-align:right}
+.foot .ver{display:block;opacity:.7;margin-top:2px}
