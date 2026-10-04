@@ -336,3 +336,8 @@ button.qrow.pickme{width:100%;border:0;text-align:right;cursor:pointer}
 
 /* ---------- v7: raised center button in the bottom bar ---------- */
 .nav .add{transform:translateY(-18px);box-shadow:0 8px 20px rgba(232,62,114,.38),0 0 0 6px var(--surface);padding:12px 18px}
+
+/* ---------- v8 ---------- */
+.badge-n.neutral{background:var(--ink);color:var(--bg)}
+.htabs button{display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.topic{margin-bottom:14px}
