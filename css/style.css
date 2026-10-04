@@ -72,7 +72,7 @@ textarea.field{min-height:92px;resize:none}
 .links{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
 .links a{font-size:13px;font-weight:700;text-decoration:none;color:var(--ink);background:var(--chip);border-radius:999px;padding:6px 11px;min-height:32px;display:inline-flex;align-items:center}
 .scale{margin-top:12px}
-.scale span{font-size:14px;font-weight:800;display:block;margin-bottom:6px}
+.scale>span{font-size:14px;font-weight:800;display:block;margin-bottom:6px}
 .dots{display:flex;gap:8px}
 .dots button{flex:1;height:46px;border-radius:14px;border:2px solid var(--line);background:transparent;font-weight:800;font-size:18px}
 .dots button.on{background:var(--pink);border-color:var(--pink);color:var(--pink-ink)}
@@ -287,3 +287,52 @@ button.qrow.pickme{width:100%;border:0;text-align:right;cursor:pointer}
 .foot .ver{display:block;opacity:.7;margin-top:2px}
 .dok{color:var(--mint)}.dbad{color:var(--warn)}
 .dcode{font-size:11px;color:var(--muted);direction:ltr;unicode-bidi:isolate}
+
+/* ---------- avatars ---------- */
+.av{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;overflow:hidden;flex:none;background:var(--chip);vertical-align:middle}
+.av img{width:100%;height:100%;object-fit:cover;display:block}
+.av.ini{background:linear-gradient(135deg,hsl(var(--h) 70% 60%),hsl(calc(var(--h) + 40) 70% 48%));color:#fff;font-weight:800;font-size:16px}
+.av.xxs{width:20px;height:20px;font-size:11px}
+.av.xs{width:26px;height:26px;font-size:13px}
+.av.sm{width:34px;height:34px;font-size:15px}
+.av.xl{width:104px;height:104px;font-size:44px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.withav{display:inline-flex;align-items:center;gap:7px;vertical-align:middle}
+.lb .nm .withav{font-weight:800}
+.chips.guess .withav{gap:5px}
+.rv-who .withav{gap:6px}
+.profhead{display:flex;align-items:center;gap:14px;margin-top:6px}
+.photobtns{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.btn.sm{min-height:36px;padding:6px 14px;font-size:14px;cursor:pointer}
+.qrow .av{flex:none}
+
+/* ---------- home tabs ---------- */
+.htabs{margin:6px 0 14px}
+.htabs .cnt{font-size:12px;color:var(--muted);font-weight:700}
+.badge-n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--pink);color:var(--pink-ink);font-size:12px;font-weight:800;margin-inline-start:4px}
+/* header title stays on one line next to the avatar + name */
+.brand{gap:10px}
+.bname{min-width:0}
+.brand .display{white-space:nowrap;overflow-wrap:normal;font-size:min(30px,7.6vw)}
+.bright{flex:none}
+.bname{overflow:hidden}
+.brand .display{font-size:clamp(22px,6.4vw,30px);overflow:hidden;text-overflow:ellipsis;min-width:0}
+.brand .display{direction:ltr;unicode-bidi:isolate}
+
+/* ---------- v7: header avatar ---------- */
+.meav{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;padding:0;color:var(--ink);font-size:12px;font-weight:700;max-width:66px;cursor:pointer}
+.meav>span:last-child{max-width:66px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bright{align-items:center}
+
+/* ---------- v7: round cards with a call-to-action ---------- */
+.round.rcard{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;padding:16px 18px 16px 14px}
+.rinfo{display:flex;flex-direction:column;align-items:flex-start;min-width:0;text-align:right}
+.round.rcard .display{font-size:30px;margin-bottom:4px}
+.rinfo .langtag{margin:0 0 4px}
+.rmeta{font-size:14px;color:var(--muted);line-height:1.45}
+.rmeta .adm{font-weight:800;color:var(--ink)}
+.cta{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;min-height:44px;border-radius:999px;background:var(--pink);color:var(--pink-ink);font-weight:800;font-size:15px;white-space:nowrap;box-shadow:0 4px 12px rgba(232,62,114,.28)}
+.cta.done{background:transparent;color:var(--mint);box-shadow:inset 0 0 0 2px var(--mint)}
+.cta.soft{background:var(--chip);color:var(--ink);box-shadow:none}
+
+/* ---------- v7: raised center button in the bottom bar ---------- */
+.nav .add{transform:translateY(-18px);box-shadow:0 8px 20px rgba(232,62,114,.38),0 0 0 6px var(--surface);padding:12px 18px}
