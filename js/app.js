@@ -92,6 +92,8 @@ app.addEventListener('click', async e => {
     if (lock && !confirm('לנעול את "' + title + '"? אחרי הנעילה אי אפשר לשנות.')) return;
     await write(() => db.doc('picks/' + r.id + '__' + me).set({ rid: r.id, uid: me, title: title.slice(0, 80), artist: (d.artist || '').trim().slice(0, 60), url, artwork: safeUrl(d.artwork || ''), previewUrl: safeUrl(d.previewUrl || ''), trackId: String(d.trackId || ''), album: String(d.album || '').slice(0, 80), source: d.trackId ? (d.source || 'apple') : 'manual', locked: lock, at: now(), ...(lock ? { lockedAt: now() } : {}) }), lock ? 'הבחירה ננעלה 🔒' : 'הטיוטה נשמרה');
   }
+  else if (a === 'htab') { homeTab = v; render() }
+  else if (a === 'rmphoto') { if (confirm('להסיר את תמונת הפרופיל?')) await write(() => db.doc('players/' + me).update({ photo: firebase.firestore.FieldValue.delete() }), 'התמונה הוסרה') }
   else if (a === 'glogin') { googleSignIn() }
   else if (a === 'gbackup') { googleBackup() }
   else if (a === 'reqrestore') {
@@ -131,7 +133,8 @@ app.addEventListener('click', async e => {
       if (d.guesses[p.uid]) guesses[p.uid] = d.guesses[p.uid];
     });
     rateDraft[r.id] = { scores: JSON.parse(JSON.stringify(scores)), guesses: { ...guesses } };
-    await write(() => db.doc('ratings/' + r.id + '__' + me).set({ rid: r.id, uid: me, scores, guesses, locked: lock, at: now() }), lock ? 'הדירוג ננעל 🔒' : 'נשמר');
+    const okR = await write(() => db.doc('ratings/' + r.id + '__' + me).set({ rid: r.id, uid: me, scores, guesses, locked: lock, at: now() }), lock ? 'הדירוג ננעל 🔒' : 'נשמר');
+    if (okR && lock) { stopPreview(); view = { name: 'home', v: null }; render(); scrollTo(0, 0) }
   }
   else if (a === 'endpick') { const r = S.rounds.find(x => x.id === view.v); if (!r) return;
     const st = roundStatus(r);
@@ -171,6 +174,34 @@ app.addEventListener('keydown', e => {
 /* Reveal layer: skip / finish */
 document.getElementById('reveal').addEventListener('click', e => { if (e.target.closest('[data-rv="skip"]')) closeReveal() });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && revealOn) closeReveal() });
+
+/* Profile photo: crop to a square, shrink to 128px JPEG (a few KB) and store it on the player record. */
+function shrinkPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const s = Math.min(img.naturalWidth, img.naturalHeight), size = 128;
+      const c = document.createElement('canvas'); c.width = c.height = size;
+      const g = c.getContext('2d');
+      g.drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      let q = 0.85, out = c.toDataURL('image/jpeg', q);
+      while (out.length > 60000 && q > 0.4) { q -= 0.15; out = c.toDataURL('image/jpeg', q) }
+      resolve(out);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img')) };
+    img.src = url;
+  });
+}
+app.addEventListener('change', async e => {
+  const inp = e.target; if (!inp.dataset || !inp.dataset.photo || !inp.files || !inp.files[0]) return;
+  try {
+    const data = await shrinkPhoto(inp.files[0]);
+    if (!safePhoto(data)) throw new Error('bad');
+    await write(() => db.doc('players/' + me).update({ photo: data }), 'התמונה עודכנה');
+  } catch (_) { toast('לא הצלחתי לטעון את התמונה. נסו תמונה אחרת.') }
+  inp.value = '';
+});
 
 /* ---------- boot ---------- */
 bootFirebase();

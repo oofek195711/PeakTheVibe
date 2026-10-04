@@ -1,4 +1,4 @@
-const APP_VERSION = '5'; // shown in the footer; bump together with ?v= in index.html
+const APP_VERSION = '7'; // shown in the footer; bump together with ?v= in index.html
 /* PeakTheVibe: constants, shared state and small utilities.
    Loaded first. All scripts are classic scripts sharing one global scope. */
 
@@ -48,6 +48,7 @@ const S = { rounds: [], picks: [], ratings: [], players: {}, topics: [], links: 
   settings: { startHour: 10, pickHours: 24, rateHours: 24, inactive: [] }, loaded: {} };
 let view = { name: 'home', v: null };
 let boardMode = 'week';
+let homeTab = 'open';
 const D = {};
 const rateDraft = {};
 let pending = false, busy = false;
@@ -57,6 +58,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const safeUrl = u => (typeof u === 'string' && /^https?:\/\//i.test(u.trim())) ? u.trim() : '';
 const now = () => Date.now();
 const isAdmin = () => !!me && S.admin === me;
+const safePhoto = p => (typeof p === 'string' && p.length < 80000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p)) ? p : '';
 const nameOf = uid => (S.players[uid] && S.players[uid].nick) || 'שחקן';
 const r1 = x => Math.round(x * 10) / 10;
 function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) } return h >>> 0 }

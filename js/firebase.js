@@ -110,9 +110,14 @@ async function googleSignIn() {
   try {
     const res = await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
     if (res.additionalUserInfo && res.additionalUserInfo.isNewUser) {
-      // This Google account was never backed up: don't leave an empty duplicate behind.
-      await res.user.delete().catch(() => auth.signOut());
-      alert('חשבון ה-Google הזה עוד לא מגובה במשחק.\n\nקודם גבה אותו מהמכשיר שבו אתה כבר משחק (מסך הניהול ← גבה עם Google), ואז התחבר כאן שוב.');
+      // This Google account isn't connected to any player yet.
+      const played = confirm('חשבון ה-Google הזה עוד לא מחובר לשום שחקן במשחק.\n\nכבר שיחקת במכשיר אחר?\n\nאישור = כן, כבר שיחקתי\nביטול = אני שחקן חדש');
+      if (played) {
+        // Don't leave an empty duplicate behind.
+        await res.user.delete().catch(() => auth.signOut());
+        alert('כדי לא לאבד את ההיסטוריה שלך:\n\n1. במכשיר הישן: פרופיל ← גבה עם Google, ואז התחבר כאן שוב.\n2. אין לך את המכשיר הישן? במסך הכניסה בחר "שחזר את החשבון שלי", והמנהל יאשר.');
+      }
+      // New player: keep the Google account; after reload they pick a nickname, already backed up.
     }
     location.reload();
   } catch (e) { authBusy = false; const t = authErrorText(e); if (t) alert(t) }
