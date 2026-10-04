@@ -11,20 +11,24 @@ function ideaChips(key) {
   return `<p class="hint" style="margin:-6px 0 8px">רעיונות לדוגמה, לחיצה ממלאת:</p><div class="chips">${list.map(x => `<button data-act="idea" data-k="${esc(key)}" data-v="${esc(x.t)}">${esc(x.t)}</button>`).join('')}</div>`;
 }
 
-function linksHtml(p) {
-  const q = encodeURIComponent((p.title + ' ' + (p.artist || '')).trim());
-  const u = safeUrl(p.url), L = [];
-  if (u) { L.push(['▶ הלינק', u]); L.push(['לכל האפליקציות', 'https://song.link/' + u]) }
-  L.push(['Spotify', 'https://open.spotify.com/search/' + q]);
-  L.push(['Apple Music', 'https://music.apple.com/search?term=' + q]);
-  L.push(['YouTube', 'https://www.youtube.com/results?search_query=' + q]);
-  return '<div class="links">' + L.map(([t, h]) => `<a href="${esc(h)}" target="_blank" rel="noopener">${esc(t)}</a>`).join('') + '</div>';
+/* Where a song can be opened: its own link (labelled by platform), plus searches on the big apps. */
+function linkLabel(u) {
+  return /music\.apple\.com|itunes\.apple\.com/.test(u) ? 'Apple Music' : /spotify\.com/.test(u) ? 'Spotify' : /youtu\.?be/.test(u) ? 'YouTube' : /deezer\.com/.test(u) ? 'Deezer' : '▶ הלינק';
 }
+function songLinkList(p) {
+  const q = encodeURIComponent((p.title + ' ' + (p.artist || '')).trim()), u = safeUrl(p.url);
+  const own = u ? linkLabel(u) : '';
+  const L = [];
+  if (u) L.push([own, u]);
+  if (own !== 'Spotify') L.push(['Spotify', 'https://open.spotify.com/search/' + q]);
+  if (own !== 'YouTube') L.push(['YouTube', 'https://www.youtube.com/results?search_query=' + q]);
+  if (own !== 'Apple Music') L.push(['Apple Music', 'https://music.apple.com/search?term=' + q]);
+  return L.map(([t, h]) => `<a href="${esc(h)}" target="_blank" rel="noopener">${esc(t)}</a>`).join('');
+}
+function linksHtml(p) { return '<div class="links">' + songLinkList(p) + '</div>' }
 function playlistHead(picks) {
-  const ids = picks.map(p => ytId(safeUrl(p.url))).filter(Boolean);
   const sm = 'style="min-height:40px;padding:8px 14px;font-size:14px"';
-  const yt = ids.length ? `<a class="btn ghost" ${sm} href="https://www.youtube.com/watch_videos?video_ids=${ids.join(',')}" target="_blank" rel="noopener">נגן ${ids.length} ביוטיוב ברצף</a>` : '';
-  return `<div class="head"><span class="muted" style="font-size:14px">${picks.length} שירים</span><span style="display:flex;gap:8px">${yt}<button class="btn ghost" ${sm} data-act="copylist">העתק רשימה</button></span></div>`;
+  return `<div class="head"><span class="muted" style="font-size:14px">${picks.length === 1 ? 'שיר אחד' : picks.length + ' שירים'}</span><button class="btn ghost" ${sm} data-act="copylist">העתק רשימה</button></div>`;
 }
 
 function trackerHtml(r) {
@@ -98,7 +102,7 @@ function render() {
   if (window.scrollY !== y) window.scrollTo(0, y);
 }
 const LOGO = (cls) => `<span class="logo ${cls || ''}"><img src="PeakTheVibeLogo.png" alt=""></span>`;
-const FOOT = `<footer class="foot">© ${new Date().getFullYear()} PeakTheVibe. כל הזכויות שמורות לאופק טלקר.<span class="ver">גרסה ${APP_VERSION}</span></footer>`;
+const FOOT = `<footer class="foot">© ${new Date().getFullYear()} PeakTheVibe. כל הזכויות שמורות לאופק טלקר.<span class="ver">גרסה ${APP_LABEL}</span></footer>`;
 function helpSeen() { try { return localStorage.getItem('ptv_help') === '1' } catch (_) { return true } }
 function markHelp() { try { localStorage.setItem('ptv_help', '1') } catch (_) { } }
 function helpView() {
@@ -158,15 +162,7 @@ function playBtn(p) {
   const u = safeUrl(p.url) || 'https://www.youtube.com/results?search_query=' + encodeURIComponent((p.title + ' ' + (p.artist || '')).trim());
   return `<a class="play" href="${esc(u)}" target="_blank" rel="noopener" aria-label="פתח את השיר">▶</a>`;
 }
-function openLinks(p) {
-  const q = encodeURIComponent((p.title + ' ' + (p.artist || '')).trim()), u = safeUrl(p.url);
-  const L = [];
-  if (u) L.push(['לכל האפליקציות', 'https://song.link/' + u]);
-  L.push(['Spotify', 'https://open.spotify.com/search/' + q]);
-  L.push(['YouTube', 'https://www.youtube.com/results?search_query=' + q]);
-  if (!u || !/apple\.com/.test(u)) L.push(['Apple Music', 'https://music.apple.com/search?term=' + q]);
-  return `<div class="olinks">${L.map(([t, h]) => `<a href="${esc(h)}" target="_blank" rel="noopener">${t}</a>`).join('')}</div>`;
-}
+function openLinks(p) { return `<div class="olinks">${songLinkList(p)}</div>` }
 /* A music card. It never shows who picked the song; callers add that only after rating ends. */
 function songCard(p, o) {
   o = o || {};
@@ -255,7 +251,7 @@ function homeView() {
   const deadline = r => phase(r) === 'pick' ? r.pickEnds : r.rateEnds;
   const open = S.rounds.filter(r => phase(r) !== 'done').sort((a, b) => (needsMe(b) - needsMe(a)) || (deadline(a) - deadline(b)));
   const done = doneRounds().sort((a, b) => b.rateEnds - a.rateEnds);
-  let head = `<div class="brand"><span class="bname">${LOGO()}<span class="display">PeakTheVibe</span></span><span class="bright"><button class="qbtn" data-act="go" data-v="help" aria-label="איך משחקים">?</button><button class="meav" data-act="prof" data-v="${esc(me)}" aria-label="הפרופיל שלי">${avatarHtml(me, 'sm')}<span>${esc(nameOf(me))}</span></button></span></div>`;
+  let head = `<div class="brand"><span class="bright"><button class="meav" data-act="prof" data-v="${esc(me)}" aria-label="הפרופיל שלי">${avatarHtml(me, 'sm')}<span>${esc(nameOf(me))}</span></button><button class="qbtn" data-act="go" data-v="help" aria-label="איך משחקים">?</button></span><span class="bname"><span class="display">PeakTheVibe</span>${LOGO()}</span></div>`;
   if (wantAdmin && !S.admin) head += `<div class="banner">עוד אין מנהל למשחק. <button class="btn" style="min-height:40px;margin-top:8px" data-act="claim">הפוך אותי למנהל</button></div>`;
   const nt = nextAutoTime();
   const nextLine = `<p class="hint" style="margin:0 0 6px">הנושא הבא נפתח ${new Date(nt).toDateString() === new Date().toDateString() ? 'היום' : 'מחר'} ב-${hh(S.settings.startHour)}.</p>`;
@@ -289,7 +285,7 @@ function homeView() {
       <span class="cta ${ctaCls}">${cta}</span></button>`;
   };
   const unseen = done.filter(r => !revealSeen(r.id) && now() - r.rateEnds < 7 * 864e5).length;
-  const tabs = `<div class="seg htabs"><button class="${homeTab === 'open' ? 'on' : ''}" data-act="htab" data-v="open">פתוחים עכשיו${open.length ? ` <span class="cnt">${open.length}</span>` : ''}</button><button class="${homeTab === 'done' ? 'on' : ''}" data-act="htab" data-v="done">הסתיימו${unseen ? ` <span class="badge-n">${unseen}</span>` : ''}</button></div>`;
+  const tabs = `<div class="seg htabs"><button class="${homeTab === 'open' ? 'on' : ''}" data-act="htab" data-v="open">פתוחים עכשיו${open.length ? ` <span class="badge-n neutral">${open.length}</span>` : ''}</button><button class="${homeTab === 'done' ? 'on' : ''}" data-act="htab" data-v="done">הסתיימו${unseen ? ` <span class="badge-n">${unseen}</span>` : ''}</button></div>`;
   const body = homeTab === 'done'
     ? (done.length ? done.map(row).join('') : `<p class="muted" style="text-align:center;padding:24px 0">עוד אין סבבים שהסתיימו.</p>`)
     : (open.length ? open.map(row).join('') : `<p class="muted" style="text-align:center;padding:24px 0">אין סבבים פתוחים כרגע.${unseen ? ' יש תוצאות חדשות בלשונית "הסתיימו".' : ''}</p>`);
@@ -364,7 +360,7 @@ function steps(ph) {
 }
 function roundView(r) {
   const ph = phase(r), picks = S.picks.filter(p => p.rid === r.id), adm = isAdmin();
-  let h = `<button class="back" data-act="go" data-v="home">→ כל הסבבים</button><div class="display topic">${esc(r.topic)}</div>${langBanner(r)}${steps(ph)}`;
+  let h = `<button class="back" data-act="go" data-v="home">→ כל הסבבים</button><div class="display topic">${esc(r.topic)}</div>${langBanner(r)}`;
   const legend = `<p class="legend">🎯 התאמה לנושא<br>✨ ${esc(m2of(r))}</p>`;
   if (ph === 'pick') {
     const mine = picks.find(p => p.uid === me), k = 'pk:' + r.id;

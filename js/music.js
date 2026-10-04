@@ -16,9 +16,8 @@ function songKeys(p) {
    Two free sources, no keys: Apple (iTunes Search API) first, Deezer as automatic fallback.
    Uses the iTunes Search API: free, no API key, no secrets in the frontend.
    It is called through JSONP (a <script> tag with a callback), which works from
-   GitHub Pages without any CORS setup. Results link to Apple Music; the
-   "all apps" link (song.link) lets each player open the same song in Spotify,
-   YouTube Music, etc.
+   GitHub Pages without any CORS setup. Each song card links to the song itself
+   plus searches on Spotify, YouTube and Apple Music.
    Spotify and YouTube search both require secret credentials and a backend,
    so they are intentionally not used here. */
 const searchState = {}; // per pick-draft key: { q, loading, error, results }
@@ -125,7 +124,7 @@ function deviceLabel() {
 }
 function noteSearchDiag(src, status) {
   searchDiag[src] = String(status).slice(0, 90);
-  const d = { itunes: searchDiag.itunes || '', deezer: searchDiag.deezer || '', device: deviceLabel(), ver: APP_VERSION };
+  const d = { itunes: searchDiag.itunes || '', deezer: searchDiag.deezer || '', device: deviceLabel(), ver: APP_LABEL };
   const sig = d.itunes + '|' + d.deezer + '|' + d.device + '|' + d.ver;
   if (sig === diagSaved || !db || !me || !S.players[me]) return;
   diagSaved = sig;

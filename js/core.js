@@ -1,4 +1,5 @@
-const APP_VERSION = '7'; // shown in the footer; bump together with ?v= in index.html
+const APP_VERSION = '9'; // build number: bump together with ?v= in index.html
+const APP_LABEL = '1.0.' + APP_VERSION; // shown to players, e.g. 1.0.9
 /* PeakTheVibe: constants, shared state and small utilities.
    Loaded first. All scripts are classic scripts sharing one global scope. */
 
