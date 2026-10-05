@@ -170,13 +170,37 @@ function updateSearchResults(key) {
   if (box) box.innerHTML = searchResultsHtml(key); else render();
 }
 
-/* ---------- 30-second previews ---------- */
-let previewAudio = null, previewPlaying = '';
-function togglePreview(url) {
-  if (!url) return;
-  if (!previewAudio) { previewAudio = new Audio(); previewAudio.addEventListener('ended', () => { previewPlaying = ''; render() }) }
-  if (previewPlaying === url) { previewAudio.pause(); previewPlaying = '' }
-  else { previewAudio.src = url; previewAudio.play().catch(() => toast('לא הצלחתי לנגן קטע')); previewPlaying = url }
+/* ---------- 30-second previews ----------
+   Apple preview links are permanent. Deezer preview links carry a token that
+   expires, so for Deezer songs we ask Deezer for a fresh link at play time.
+   `key` is the saved preview link, used only to know which button is active. */
+let previewAudio = null, previewPlaying = '', previewLoading = '';
+async function freshDeezerPreview(tid) {
+  const id = String(tid || '').replace(/^dz/, '');
+  if (!/^\d+$/.test(id)) return '';
+  const d = await jsonp('https://api.deezer.com/track/' + id + '?output=jsonp', 6000);
+  return safeUrl((d && d.preview) || '');
+}
+async function togglePreview(key, tid) {
+  if (!key) return;
+  if (!previewAudio) {
+    previewAudio = new Audio();
+    previewAudio.addEventListener('ended', () => { previewPlaying = ''; render() });
+  }
+  if (previewPlaying === key || previewLoading === key) { previewAudio.pause(); previewPlaying = ''; previewLoading = ''; render(); return }
+  previewAudio.pause(); previewPlaying = ''; previewLoading = key; render();
+  let src = key;
+  try {
+    if (String(tid || '').startsWith('dz')) src = (await freshDeezerPreview(tid)) || '';
+    if (previewLoading !== key) return; // user tapped something else meanwhile
+    if (!src) throw new Error('no preview');
+    previewAudio.src = src;
+    await previewAudio.play();
+    if (previewLoading !== key) { previewAudio.pause(); return }
+    previewLoading = ''; previewPlaying = key;
+  } catch (e) {
+    if (previewLoading === key) { previewLoading = ''; previewPlaying = ''; toast('אין קטע האזנה לשיר הזה. אפשר לפתוח אותו באחת האפליקציות שמתחת.') }
+  }
   render();
 }
-function stopPreview() { if (previewAudio && previewPlaying) { previewAudio.pause(); previewPlaying = '' } }
+function stopPreview() { if (previewAudio) previewAudio.pause(); previewPlaying = ''; previewLoading = '' }

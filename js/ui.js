@@ -158,7 +158,8 @@ function artHtml(p, cls) {
 }
 function playBtn(p) {
   const pv = safeUrl(p.previewUrl);
-  if (pv) return `<button class="play ${previewPlaying === pv ? 'on' : ''}" data-act="preview" data-v="${esc(pv)}" aria-label="נגן קטע">${previewPlaying === pv ? '❚❚' : '▶'}</button>`;
+  if (pv) { const st = previewLoading === pv ? 'load' : previewPlaying === pv ? 'on' : '';
+    return `<button class="play ${st}" data-act="preview" data-v="${esc(pv)}" data-tid="${esc(p.trackId || '')}" aria-label="נגן קטע">${st === 'load' ? '…' : st === 'on' ? '❚❚' : '▶'}</button>` }
   const u = safeUrl(p.url) || 'https://www.youtube.com/results?search_query=' + encodeURIComponent((p.title + ' ' + (p.artist || '')).trim());
   return `<a class="play" href="${esc(u)}" target="_blank" rel="noopener" aria-label="פתח את השיר">▶</a>`;
 }

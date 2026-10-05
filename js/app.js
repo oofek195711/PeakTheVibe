@@ -119,7 +119,7 @@ app.addEventListener('click', async e => {
     Object.assign(D[k], { title: x.title, artist: x.artist, url: x.url, artwork: x.artwork, previewUrl: x.previewUrl, trackId: x.trackId, album: x.album, source: x.source });
     delete searchState[k]; D[k].q = ''; if (document.activeElement) document.activeElement.blur(); render(); toast('נבחר: ' + x.title + '. עכשיו שומרים או נועלים.');
   }
-  else if (a === 'preview') { togglePreview(v) }
+  else if (a === 'preview') { togglePreview(v, b.dataset.tid) }
   else if (a === 'replay') { const r = S.rounds.find(x => x.id === view.v); if (r) startReveal(r) }
   else if (a === 'rate') { const d = rateDraft[view.v]; const u = uidFromTok(view.v, b.dataset.u); if (!u) return; d.scores[u] = { ...(d.scores[u] || {}), [b.dataset.k]: +b.dataset.n }; render() }
   else if (a === 'guess') { const d = rateDraft[view.v]; const u = uidFromTok(view.v, b.dataset.u); if (!u) return; d.guesses[u] = d.guesses[u] === b.dataset.g ? null : b.dataset.g; if (!d.guesses[u]) delete d.guesses[u]; render() }
