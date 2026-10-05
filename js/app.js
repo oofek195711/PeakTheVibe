@@ -94,6 +94,21 @@ app.addEventListener('click', async e => {
     if (lock && !confirm('לנעול את "' + title + '"? אחרי הנעילה אי אפשר לשנות.')) return;
     await write(() => db.doc('picks/' + r.id + '__' + me).set({ rid: r.id, uid: me, title: title.slice(0, 80), artist: (d.artist || '').trim().slice(0, 60), url, artwork: safeUrl(d.artwork || ''), previewUrl: safeUrl(d.previewUrl || ''), trackId: String(d.trackId || ''), album: String(d.album || '').slice(0, 80), source: d.trackId ? (d.source || 'apple') : 'manual', locked: lock, at: now(), ...(lock ? { lockedAt: now() } : {}) }), lock ? 'הבחירה ננעלה 🔒' : 'הטיוטה נשמרה');
   }
+  else if (a === 'fbtype') { D.fb.type = v; render() }
+  else if (a === 'sendfb') {
+    const d = D.fb, text = (d.t || '').trim();
+    if (text.length < 3) { toast('כתבו כמה מילים'); return }
+    const doc = { by: me, nick: nameOf(me).slice(0, 24), type: FB_TYPES[d.type] ? d.type : 'other', text: text.slice(0, 1500), ver: APP_LABEL, device: deviceLabel(), at: now(), status: 'new' };
+    if (await write(() => db.collection('feedback').add(doc), 'נשלח. תודה! 🙏')) { D.fb = { type: d.type, t: '' }; render() }
+  }
+  else if (a === 'fbreplyopen') { const f = (S.feedback || []).find(x => x.id === v); D['fbr:' + v] = { t: (f && f.reply) || '' }; render() }
+  else if (a === 'fbreplycancel') { delete D['fbr:' + v]; render() }
+  else if (a === 'fbreply') {
+    const t = ((D['fbr:' + v] || {}).t || '').trim(); if (!t) { toast('כתוב תשובה'); return }
+    if (await write(() => db.doc('feedback/' + v).update({ reply: t.slice(0, 800), repliedAt: now(), status: 'done' }), 'התשובה נשלחה')) { delete D['fbr:' + v]; render() }
+  }
+  else if (a === 'fbdone') { const f = (S.feedback || []).find(x => x.id === v); if (f) await write(() => db.doc('feedback/' + v).update({ status: f.status === 'done' ? 'new' : 'done' })) }
+  else if (a === 'fbdel') { if (confirm('למחוק את ההודעה?')) await write(() => db.doc('feedback/' + v).delete(), 'נמחק') }
   else if (a === 'htab') { homeTab = v; render() }
   else if (a === 'rmphoto') { if (confirm('להסיר את תמונת הפרופיל?')) await write(() => db.doc('players/' + me).update({ photo: firebase.firestore.FieldValue.delete() }), 'התמונה הוסרה') }
   else if (a === 'glogin') { googleSignIn() }

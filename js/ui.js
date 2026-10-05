@@ -70,7 +70,7 @@ app.addEventListener('focusout', () => { if (!pending) return; setTimeout(() => 
 
 function nav() {
   const tab = (n, t) => `<button class="tab ${view.name === n ? 'on' : ''}" data-act="go" data-v="${n}">${t}</button>`;
-  const np = pendingTopics().length;
+  const np = pendingTopics().length + (isAdmin() ? (S.feedback || []).filter(f => f.status === 'new').length : 0);
   const mid = isAdmin()
     ? `<button class="btn add" data-act="go" data-v="admin">ניהול${np ? ' (' + np + ')' : ''}</button>`
     : `<button class="btn add" data-act="go" data-v="suggest">הצע נושא +</button>`;
@@ -93,17 +93,19 @@ function render() {
   else if (v === 'admin' && isAdmin()) body = adminView();
   else if (v === 'suggest') body = suggestView();
   else if (v === 'help') body = helpView();
+  else if (v === 'feedback') body = feedbackView();
+  else if (v === 'inbox' && isAdmin()) body = inboxView();
   else if (v === 'history' && isAdmin()) body = historyView();
   else if (v === 'board') body = boardView();
   else if (v === 'profile') body = profileView(view.v);
   else body = homeView();
   const y = window.scrollY || 0;
-  app.innerHTML = body + FOOT + (rateBar ? '' : nav());
+  app.innerHTML = body + FOOT() + (rateBar ? '' : nav());
   app.querySelectorAll('details[data-k]').forEach(d => { if (openDetails.has(d.dataset.k)) d.open = true });
   if (window.scrollY !== y) window.scrollTo(0, y);
 }
 const LOGO = (cls) => `<span class="logo ${cls || ''}"><img src="PeakTheVibeLogo.png" alt=""></span>`;
-const FOOT = `<footer class="foot">© ${new Date().getFullYear()} PeakTheVibe. כל הזכויות שמורות לאופק טלקר.<span class="ver">גרסה ${APP_LABEL}</span></footer>`;
+const FOOT = () => `<footer class="foot">${S.players[me] ? '<button class="fblink" data-act="go" data-v="feedback">משהו לא עובד? יש לך רעיון? 💬 שלחו משוב</button>' : ''}© ${new Date().getFullYear()} PeakTheVibe. כל הזכויות שמורות לאופק טלקר.<span class="ver">גרסה ${APP_LABEL}</span></footer>`;
 function helpSeen() { try { return localStorage.getItem('ptv_help') === '1' } catch (_) { return true } }
 function markHelp() { try { localStorage.setItem('ptv_help', '1') } catch (_) { } }
 function helpView() {
@@ -120,6 +122,7 @@ function helpView() {
   ${item('🕵️', 'מנחשים מי בחר', 'ליד כל שיר בוחרים מי לדעתכם בחר אותו. כל ניחוש נכון שווה נקודת בונוס.')}
   ${item('🏆', 'ניקוד ותארים', 'כל שיר מקבל את הממוצע של שני המדדים מכל המדרגים, עד 10 נקודות, ועוד בונוסים מניחושים. בלשונית 🏆 מובילים יש לוח שבועי (מיום ראשון), לוח של כל הזמנים, תארים מצחיקים ופרופיל לכל שחקן.')}
   ${item('💡', 'יש לכם רעיון לנושא?', 'כפתור "הצע נושא" בתחתית המסך. אם המנהל יאשר, הוא יעלה באחד הימים, בלי שאף אחד יידע שזה שלכם.')}
+  ${item('💬', 'משהו לא עובד?', 'בתחתית כל מסך יש "שלחו משוב". כתבו מה קרה או מה הייתם רוצים, וזה מגיע ישר למנהל.')}
   ${item('📱', 'טיפ חשוב', 'הוסיפו את המשחק למסך הבית ופתחו אותו תמיד משם, כי המשחק מזהה אתכם לפי הדפדפן. כדאי לגבות עם Google בפרופיל שלכם: ככה תוכלו להתחבר מכל מכשיר. לא גיביתם והחלפתם טלפון? במסך הכניסה בחרו "שחזר את החשבון שלי", והמנהל יאשר.')}
   <button class="btn block" style="margin-top:18px" data-act="helpdone">הבנתי, יאללה</button>`;
 }
@@ -129,7 +132,7 @@ function nickView() {
   if (ex) return `<div style="padding-top:24px;text-align:center">${LOGO('big')}<div class="display" style="font-size:52px;margin:14px 0 10px">עוד פרט אחד</div></div>
   <div class="panel"><p style="margin-top:0">היי ${esc(ex.nick)}, הוספנו שדה של שם מלא. הוא יוצג בקטן רק בפרופיל שלך.</p>
   <label class="f" for="full">שם מלא</label><input id="full" class="field" data-f="nick.full" maxlength="40" value="${esc(d.full)}" placeholder="שם פרטי ושם משפחה">
-  <button class="btn block" data-act="savefull">שמור</button></div>${FOOT}`;
+  <button class="btn block" data-act="savefull">שמור</button></div>${FOOT()}`;
   return `<div style="padding-top:24px;text-align:center">${LOGO('big')}<div class="display" style="font-size:min(64px,16vw);margin:14px 0 10px">PeakTheVibe</div></div><div>
   <p>כל יום נושא חדש. בוחרים שיר שמתאים, מדרגים את השירים של כולם, מנחשים מי בחר מה, ומי שבחר הכי טוב לוקח.</p>
   <div class="panel" style="margin-top:22px"><label class="f" for="nick">איך יקראו לך במשחק?</label>
@@ -140,7 +143,7 @@ function nickView() {
   <button class="btn block" data-act="savenick">יאללה, נכנסים</button></div>
   <div class="panel restorebox"><b>כבר שיחקת במכשיר אחר?</b><p class="hint" style="margin:4px 0 10px">גיביתם עם Google? התחברו ישר. לא גיביתם? בחרו את השם שלכם והמנהל יאשר.</p>
   <button class="btn ghost block" data-act="go" data-v="restore">שחזר את החשבון שלי</button>
-  <button class="btn ghost block" style="margin-top:8px" data-act="glogin">🔐 כבר גיביתי? התחברות עם Google</button></div></div>${FOOT}`;
+  <button class="btn ghost block" style="margin-top:8px" data-act="glogin">🔐 כבר גיביתי? התחברות עם Google</button></div></div>${FOOT()}`;
 }
 function langPicker(key) {
   const cur = (D[key] && D[key].lang) || 'any';
@@ -200,14 +203,14 @@ function restoreView() {
   <div class="display" style="font-size:48px;margin:4px 0 6px">שחזור חשבון</div>
   <p class="hint" style="margin:0 0 14px">בחרו את השם שלכם. המנהל יקבל בקשה, וברגע שיאשר, החשבון ייפתח כאן עם כל ההיסטוריה.</p>
   ${list.length ? list.map(([u, p]) => `<button class="qrow pickme" data-act="reqrestore" data-v="${esc(u)}"><span class="qt">${esc(p.nick)}<small>${esc(p.fullName || '')}</small></span><span class="muted">בחר ←</span></button>`).join('') : '<p class="muted">עוד אין שחקנים לשחזר.</p>'}
-  <p class="hint" style="margin-top:14px">מי שגיבה עם Google יכול פשוט להתחבר במסך הכניסה, בלי בקשה.</p>${FOOT}`;
+  <p class="hint" style="margin-top:14px">מי שגיבה עם Google יכול פשוט להתחבר במסך הכניסה, בלי בקשה.</p>${FOOT()}`;
 }
 function waitView() {
   const p = S.players[myLink.target] || {};
   return `<div style="padding-top:24px;text-align:center">${LOGO('big')}<div class="display" style="font-size:52px;margin:14px 0 6px">⏳ מחכים למנהל</div></div>
   <div class="panel"><p style="margin-top:0">ביקשת לשחזר את החשבון של <b>${esc(p.nick || 'שחקן')}</b>.</p>
   <p class="hint" style="margin:0 0 14px">המנהל צריך לאשר שזה באמת את/ה. אפשר לשלוח לו הודעה. ברגע שיאשר, החשבון ייפתח כאן לבד.</p>
-  <button class="btn ghost block" data-act="cancelrestore">ביטול הבקשה</button></div>${FOOT}`;
+  <button class="btn ghost block" data-act="cancelrestore">ביטול הבקשה</button></div>${FOOT()}`;
 }
 function diagAdminHtml() {
   const rows = Object.entries(S.players).filter(([, p]) => p.diag).sort((a, b) => (b[1].diag.at || 0) - (a[1].diag.at || 0));
@@ -236,6 +239,42 @@ function avatarHtml(uid, cls) {
   return `<span class="av ini ${cls || ''}" style="--h:${hue}">${esc(Array.from(n)[0] || '?')}</span>`;
 }
 const withAv = (uid, cls) => `<span class="withav">${avatarHtml(uid, cls)}<span>${esc(nameOf(uid))}</span></span>`;
+/* ---------- feedback / tickets ---------- */
+const FB_TYPES = { bug: '🐞 תקלה', idea: '💡 רעיון', other: '💬 אחר' };
+const fbWhen = t => new Date(t).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+function feedbackView() {
+  ensureMyFeedbackSub();
+  const d = draft('fb', () => ({ type: 'bug', t: '' }));
+  const mine = (S.myFeedback || []).slice().sort((a, b) => b.at - a.at);
+  let h = `<button class="back" data-act="go" data-v="home">→ חזרה</button>
+  <div class="display" style="font-size:48px;margin:4px 0 6px">משוב</div>
+  <p class="hint" style="margin:0 0 14px">משהו לא עובד, או שיש לכם רעיון? כתבו כאן, וזה יגיע ישר למנהל. הכינוי, הגרסה וסוג המכשיר מצורפים אוטומטית, כדי שיהיה קל להבין מה קרה.</p>
+  <div class="panel"><div class="seg" style="margin-bottom:12px">${Object.entries(FB_TYPES).map(([k, l]) => `<button class="${d.type === k ? 'on' : ''}" data-act="fbtype" data-v="${k}">${l}</button>`).join('')}</div>
+  <textarea class="field" data-f="fb.t" maxlength="1500" style="min-height:120px" placeholder="${d.type === 'bug' ? 'מה קרה? באיזה מסך? מה ציפיתם שיקרה?' : d.type === 'idea' ? 'מה הייתם רוצים להוסיף או לשנות?' : 'כתבו כאן'}">${esc(d.t)}</textarea>
+  <button class="btn block" data-act="sendfb" ${busy ? 'disabled' : ''}>שלח</button></div>`;
+  if (mine.length) h += `<h2>מה ששלחתם</h2>` + mine.map(f => `<div class="panel fbitem"><div class="fbhead"><span>${FB_TYPES[f.type] || ''}</span><span class="pill ${f.status === 'done' ? 'rate' : ''}">${f.status === 'done' ? '✓ טופל' : 'נשלח'}</span></div>
+    <div class="fbtext">${esc(f.text)}</div><small class="muted">${fbWhen(f.at)}</small>
+    ${f.reply ? `<div class="fbreply"><b>תשובה מ${esc(nameOf(S.admin))}:</b> ${esc(f.reply)}</div>` : ''}</div>`).join('');
+  return h;
+}
+function inboxView() {
+  const L = (S.feedback || []).slice().sort((a, b) => ((b.status === 'new') - (a.status === 'new')) || (b.at - a.at)); // new first, then newest
+  let h = `<button class="back" data-act="go" data-v="admin">→ ניהול</button>
+  <div class="display" style="font-size:48px;margin:4px 0 6px">משוב ותקלות</div>
+  <p class="hint" style="margin:0 0 14px">רק אתה רואה את זה. השחקן רואה את הסטטוס ואת התשובה שלך במסך המשוב שלו.</p>`;
+  if (!L.length) return h + `<p class="muted">עוד לא התקבל משוב.</p>`;
+  h += L.map(f => { const k = 'fbr:' + f.id; const d = D[k];
+    return `<div class="panel fbitem ${f.status === 'new' ? 'fbnew' : ''}">
+    <div class="fbhead"><span class="withav">${avatarHtml(f.by, 'xs')}<b>${esc(f.nick || nameOf(f.by))}</b></span><span>${FB_TYPES[f.type] || ''}</span></div>
+    <div class="fbtext">${esc(f.text)}</div>
+    <small class="muted">${fbWhen(f.at)} · גרסה ${esc(f.ver || '?')} · ${esc(f.device || '')}</small>
+    ${f.reply ? `<div class="fbreply"><b>התשובה שלך:</b> ${esc(f.reply)}</div>` : ''}
+    ${d ? `<textarea class="field" data-f="${k}.t" maxlength="800" style="margin-top:10px" placeholder="התשובה תופיע לשחקן במסך המשוב">${esc(d.t)}</textarea>
+      <div class="row-actions" style="margin-top:0"><button class="btn" style="flex:1" data-act="fbreply" data-v="${esc(f.id)}">שלח תשובה</button><button class="btn ghost" style="flex:1" data-act="fbreplycancel" data-v="${esc(f.id)}">ביטול</button></div>`
+    : `<div class="row-actions"><button class="btn ghost sm" data-act="fbreplyopen" data-v="${esc(f.id)}">${f.reply ? 'ערוך תשובה' : 'השב'}</button><button class="btn ghost sm" data-act="fbdone" data-v="${esc(f.id)}">${f.status === 'done' ? 'החזר לחדש' : '✓ טופל'}</button><button class="btn ghost sm danger" data-act="fbdel" data-v="${esc(f.id)}">מחק</button></div>`}
+    </div>` }).join('');
+  return h;
+}
 function metricPicker(key) {
   const d = D[key];
   return `<label class="f">המדד השני (הראשון תמיד: התאמה לנושא)</label>
@@ -326,7 +365,7 @@ function adminView() {
   const s = draft('set', () => ({ sh: S.settings.startHour, ph: S.settings.pickHours, rh: S.settings.rateHours }));
   const first = nextAutoTime();
   let h = `<div class="display" style="font-size:48px;margin:4px 0 14px">ניהול</div>
-  <button class="btn ghost block" data-act="go" data-v="history" style="margin-bottom:6px">📜 היסטוריית תוצאות (${Object.keys(S.logs || {}).length})</button>` + identityAdminHtml() + diagAdminHtml();
+  <button class="btn ghost block" data-act="go" data-v="history" style="margin-bottom:6px">📜 היסטוריית תוצאות (${Object.keys(S.logs || {}).length})</button>` + identityAdminHtml() + diagAdminHtml() + (() => { const n = (S.feedback || []).filter(f => f.status === 'new').length; return `<button class="btn ${n ? '' : 'ghost'} block" data-act="go" data-v="inbox" style="margin-top:10px">💬 משוב ותקלות${n ? ` (${n} חדשים)` : ` (${(S.feedback || []).length})`}</button>` })();
   h += `<h2>ממתינים לאישור (${P.length})</h2>`;
   h += P.length ? P.map(t => {
     const k = 'ed:' + t.id; draft(k, () => ({ t: t.text, m: t.metric2 || DEFAULT_M.m, f: t.funny !== false, lang: t.lang || 'any' }));

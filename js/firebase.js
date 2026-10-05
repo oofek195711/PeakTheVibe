@@ -70,7 +70,15 @@ async function write(fn, okMsg) {
    authUid is the Firebase account of this browser. `me` is the player this device
    plays as: normally authUid, or, after the admin approves a restore request,
    the player it was linked to (links/{authUid}.target). Nothing in the data moves. */
-let authUid = null, myLink = null, authGoogle = null, authBusy = false, linksSub = null;
+let authUid = null, myLink = null, authGoogle = null, authBusy = false, linksSub = null, fbSub = null;
+let myFbSub = null, myFbFor = null;
+/* the player's own feedback (and the admin's replies), loaded when the feedback screen opens */
+function ensureMyFeedbackSub() {
+  if (!db || !me || myFbFor === me) return;
+  if (myFbSub) myFbSub();
+  myFbFor = me; S.myFeedback = [];
+  myFbSub = db.collection('feedback').where('by', '==', me).onSnapshot(q => { S.myFeedback = q.docs.map(x => ({ id: x.id, ...x.data() })); schedule() }, () => { S.myFeedback = [] });
+}
 function applyLink(l) {
   const prev = myLink; myLink = l; S.loaded.link = true;
   const target = l && l.status === 'approved' && l.target ? l.target : authUid;
@@ -144,6 +152,7 @@ async function bootFirebase() {
     db.doc('config/admin').onSnapshot(s => {
       S.admin = s.exists ? s.data().uid : null; S.loaded.admin = true;
       if (S.admin === me && !logsSub) logsSub = db.collection('logs').onSnapshot(q => { const m = {}; q.docs.forEach(x => m[x.id] = x.data()); S.logs = m; S.loaded.logs = true; schedule() }, () => { });
+      if (S.admin === me && !fbSub) fbSub = db.collection('feedback').onSnapshot(q => { S.feedback = q.docs.map(x => ({ id: x.id, ...x.data() })); schedule() }, () => { });
       if (S.admin === me && !linksSub) linksSub = db.collection('links').onSnapshot(q => { S.links = q.docs.map(x => ({ id: x.id, ...x.data() })); schedule() }, () => { });
       schedule();
     }, err);

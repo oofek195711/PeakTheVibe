@@ -369,3 +369,11 @@ button.qrow.pickme{width:100%;border:0;text-align:right;cursor:pointer}
 .rv-info .t{overflow-wrap:break-word;word-break:normal;hyphens:none}
 .rv-card.win .rv-pts{font-size:46px}
 .rv-card{gap:10px}
+
+/* ---------- v1.1.0: feedback ---------- */
+.fblink{display:block;margin:0 auto 10px;background:var(--surface);border:0;border-radius:999px;padding:10px 16px;font-weight:700;font-size:13px;color:var(--ink);box-shadow:inset 0 0 0 2px var(--line);cursor:pointer}
+.fbitem{margin-bottom:10px}
+.fbitem.fbnew{box-shadow:inset 0 0 0 2px var(--pink)}
+.fbhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;font-size:14px}
+.fbtext{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45;margin-bottom:4px}
+.fbreply{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--chip);font-size:14px;white-space:pre-wrap}

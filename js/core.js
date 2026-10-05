@@ -1,5 +1,5 @@
-const APP_VERSION = '11';     // internal build number: bump on every upload, together with ?v= in index.html
-const APP_LABEL = '1.0.11';   // shown to players. 1.x.y: y = GitHub-only change, x = Firebase change (y resets to 0)
+const APP_VERSION = '12';     // internal build number: bump on every upload, together with ?v= in index.html
+const APP_LABEL = '1.1.0';   // shown to players. 1.x.y: y = GitHub-only change, x = Firebase change (y resets to 0)
 /* PeakTheVibe: constants, shared state and small utilities.
    Loaded first. All scripts are classic scripts sharing one global scope. */
 
@@ -45,7 +45,7 @@ const SUGGEST = [
   { t: 'שיר שאפשר לשים בלופ שעה בלי להשתגע', m: 'כמה זה מקפיץ', f: false }
 ];
 let db = null, me = null, ready = false, fatal = null;
-const S = { rounds: [], picks: [], ratings: [], players: {}, topics: [], links: [], admin: null,
+const S = { rounds: [], picks: [], ratings: [], players: {}, topics: [], links: [], feedback: [], myFeedback: [], admin: null,
   settings: { startHour: 10, pickHours: 24, rateHours: 24, inactive: [] }, loaded: {} };
 let view = { name: 'home', v: null };
 let boardMode = 'week';
