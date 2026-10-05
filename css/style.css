@@ -342,3 +342,30 @@ button.qrow.pickme{width:100%;border:0;text-align:right;cursor:pointer}
 .htabs button{display:inline-flex;align-items:center;justify-content:center;gap:4px}
 .topic{margin-bottom:14px}
 .play.load{opacity:.75}
+
+/* ---------- v1.0.11: 1-10 slider ---------- */
+.slider{display:flex;align-items:center;gap:12px;touch-action:pan-y;-webkit-user-select:none;user-select:none;outline:none}
+.slider .trk{position:relative;flex:1;height:44px;margin:0 14px;cursor:pointer}
+.slider .trk::before{content:"";position:absolute;left:0;right:0;top:50%;height:8px;margin-top:-4px;border-radius:99px;background:var(--line)}
+.slider .fill{position:absolute;right:0;top:50%;height:8px;margin-top:-4px;border-radius:99px;width:calc(var(--p) * 100%);background:var(--pink)}
+.slider .thumb{position:absolute;top:50%;right:calc(var(--p) * 100%);width:30px;height:30px;margin:-15px -15px 0 0;border-radius:50%;background:var(--pink);box-shadow:0 3px 10px rgba(0,0,0,.25)}
+.slider .sval{flex:none;min-width:48px;height:42px;padding:0 6px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;background:var(--pink);color:var(--pink-ink)}
+.slider.fun .fill,.slider.fun .thumb{background:var(--mint)}
+.slider.fun .sval{background:var(--mint);color:#0B2A1D}
+.slider:not(.set) .fill{display:none}
+.slider:not(.set) .thumb{background:var(--surface);border:3px dashed var(--line);box-shadow:none}
+.slider:not(.set) .sval{background:var(--chip);color:var(--muted);font-size:13px}
+.slider:focus-visible .thumb{outline:3px solid var(--ink);outline-offset:2px}
+.slider.dis{pointer-events:none;opacity:.75}
+.sticks{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--muted);margin:-6px 14px 0 74px}
+
+/* ---------- v1.0.11: bigger avatars (about 1.3x) ---------- */
+.av{width:46px;height:46px;font-size:20px}
+.av.xxs{width:26px;height:26px;font-size:13px}
+.av.xs{width:34px;height:34px;font-size:16px}
+.av.sm{width:44px;height:44px;font-size:19px}
+.av.xl{width:132px;height:132px;font-size:56px}
+/* reveal: break titles only between words, and leave the winner's title more room */
+.rv-info .t{overflow-wrap:break-word;word-break:normal;hyphens:none}
+.rv-card.win .rv-pts{font-size:46px}
+.rv-card{gap:10px}

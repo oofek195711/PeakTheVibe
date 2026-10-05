@@ -48,7 +48,7 @@ async function ensureToday() {
       const rs = await t.get(rref);
       if (rs.exists) return;
       if (tref) { const ts = await t.get(tref); if (!ts.exists || ts.data().status !== 'approved') throw new Error('stale') }
-      t.set(rref, { topic, metric2, funny, lang, auto: true, by: 'auto', createdAt: st, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 });
+      t.set(rref, { topic, metric2, funny, lang, scale: 10, auto: true, by: 'auto', createdAt: st, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 });
       if (tref) t.update(tref, { status: 'used', usedOn: id });
     });
   } catch (e) { setTimeout(() => { attempted[id] = false }, 20000) }

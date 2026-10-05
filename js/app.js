@@ -16,6 +16,8 @@ app.addEventListener('click', async e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const a = b.dataset.act, v = b.dataset.v;
   if (a === 'go' || a === 'open' || a === 'prof') stopPreview();
+  // the tap that opens unseen results also unlocks sound for the winner's song in the reveal
+  if (a === 'open') { const rr = S.rounds.find(x => x.id === v); if (rr && phase(rr) === 'done' && !revealSeen(rr.id)) primeRevealAudio() }
   if (a === 'helpdone') { markHelp(); view = { name: 'home', v: null }; render(); scrollTo(0, 0) }
   else if (a === 'go') { view = { name: v, v: null }; render(); scrollTo(0, 0) }
   else if (a === 'open') { view = { name: 'round', v }; render(); scrollTo(0, 0) }
@@ -41,7 +43,7 @@ app.addEventListener('click', async e => {
   else if (a === 'create') {
     const t = topicOf('new'); if (!t.text) { toast('צריך נושא'); return }
     const id = 'r' + now() + Math.random().toString(36).slice(2, 6), t0 = now(), pe = t0 + D.new.ph * 3600e3;
-    const ok = await write(() => db.doc('rounds/' + id).set({ topic: t.text, metric2: t.metric2, funny: t.funny, lang: t.lang, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + D.new.rh * 3600e3 }), 'הסבב נפתח');
+    const ok = await write(() => db.doc('rounds/' + id).set({ topic: t.text, metric2: t.metric2, funny: t.funny, lang: t.lang, scale: 10, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + D.new.rh * 3600e3 }), 'הסבב נפתח');
     if (ok) { delete D.new; view = { name: 'round', v: id }; render(); scrollTo(0, 0) }
   }
   else if (a === 'submittopic') {
@@ -78,7 +80,7 @@ app.addEventListener('click', async e => {
     const t = head ? { topic: head.text, metric2: head.metric2 || DEFAULT_M.m, funny: head.funny !== false, lang: langOf(head) } : fallbackTopic('n' + now());
     if (!confirm('לפתוח עכשיו סבב עם הנושא: "' + t.topic + '"?')) return;
     const id = 'r' + now() + Math.random().toString(36).slice(2, 6), t0 = now(), pe = t0 + S.settings.pickHours * 3600e3;
-    const ok = await write(() => { const w = db.batch(); w.set(db.doc('rounds/' + id), { ...t, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 }); if (head) w.update(db.doc('topics/' + head.id), { status: 'used', usedOn: id }); return w.commit() }, 'הסבב נפתח');
+    const ok = await write(() => { const w = db.batch(); w.set(db.doc('rounds/' + id), { ...t, scale: 10, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 }); if (head) w.update(db.doc('topics/' + head.id), { status: 'used', usedOn: id }); return w.commit() }, 'הסבב נפתח');
     if (ok) { view = { name: 'round', v: id }; render(); scrollTo(0, 0) }
   }
   else if (a === 'savepick' || a === 'lockpick') {
@@ -120,7 +122,7 @@ app.addEventListener('click', async e => {
     delete searchState[k]; D[k].q = ''; if (document.activeElement) document.activeElement.blur(); render(); toast('נבחר: ' + x.title + '. עכשיו שומרים או נועלים.');
   }
   else if (a === 'preview') { togglePreview(v, b.dataset.tid) }
-  else if (a === 'replay') { const r = S.rounds.find(x => x.id === view.v); if (r) startReveal(r) }
+  else if (a === 'replay') { const r = S.rounds.find(x => x.id === view.v); if (r) { primeRevealAudio(); startReveal(r) } }
   else if (a === 'rate') { const d = rateDraft[view.v]; const u = uidFromTok(view.v, b.dataset.u); if (!u) return; d.scores[u] = { ...(d.scores[u] || {}), [b.dataset.k]: +b.dataset.n }; render() }
   else if (a === 'guess') { const d = rateDraft[view.v]; const u = uidFromTok(view.v, b.dataset.u); if (!u) return; d.guesses[u] = d.guesses[u] === b.dataset.g ? null : b.dataset.g; if (!d.guesses[u]) delete d.guesses[u]; render() }
   else if (a === 'saverate' || a === 'lockrate') {
@@ -201,6 +203,63 @@ app.addEventListener('change', async e => {
     await write(() => db.doc('players/' + me).update({ photo: data }), 'התמונה עודכנה');
   } catch (_) { toast('לא הצלחתי לטעון את התמונה. נסו תמונה אחרת.') }
   inp.value = '';
+});
+
+/* ---------- 1-10 slider ----------
+   A horizontal drag moves it; a vertical swipe scrolls the page and leaves it alone;
+   a tap jumps to that spot. Right = 1, left = 10 (same direction as the old 1-5 buttons). */
+let slideSt = null;
+function sliderVal(el, x) {
+  const r = el.querySelector('.trk').getBoundingClientRect();
+  const f = Math.max(0, Math.min(1, (r.right - x) / r.width));
+  return Math.round(1 + f * 9);
+}
+function paintSlider(el, val) {
+  el.classList.add('set'); el.style.setProperty('--p', (val - 1) / 9);
+  el.querySelector('.sval').textContent = val; el.setAttribute('aria-valuenow', val);
+}
+function commitSlider(el, val) {
+  const d = rateDraft[view.v], u = uidFromTok(view.v, el.dataset.slide);
+  if (!d || !u || !val) return;
+  d.scores[u] = { ...(d.scores[u] || {}), [el.dataset.k]: val };
+  render();
+}
+app.addEventListener('pointerdown', e => {
+  const el = e.target.closest && e.target.closest('.slider');
+  if (!el || el.classList.contains('dis') || !e.target.closest('.trk')) return;
+  slideSt = { el, id: e.pointerId, x0: e.clientX, y0: e.clientY, drag: false, val: 0 };
+});
+document.addEventListener('pointermove', e => {
+  const st = slideSt; if (!st || e.pointerId !== st.id) return;
+  const dx = Math.abs(e.clientX - st.x0), dy = Math.abs(e.clientY - st.y0);
+  if (!st.drag) {
+    if (dx > 6 && dx > dy) { st.drag = true; try { st.el.setPointerCapture(e.pointerId) } catch (_) { } }
+    else { if (dy > 8) slideSt = null; return }
+  }
+  e.preventDefault();
+  st.val = sliderVal(st.el, e.clientX); paintSlider(st.el, st.val);
+}, { passive: false });
+document.addEventListener('pointerup', e => {
+  const st = slideSt; if (!st || e.pointerId !== st.id) return;
+  slideSt = null;
+  commitSlider(st.el, st.drag ? st.val : sliderVal(st.el, e.clientX));
+});
+document.addEventListener('pointercancel', e => {
+  const st = slideSt; if (!st || e.pointerId !== st.id) return;
+  slideSt = null;
+  if (st.drag && st.val) commitSlider(st.el, st.val); else render();
+});
+app.addEventListener('keydown', e => {
+  const el = e.target; if (!el.classList || !el.classList.contains('slider') || el.classList.contains('dis')) return;
+  const cur = +el.getAttribute('aria-valuenow') || 5;
+  const map = { ArrowLeft: 1, ArrowUp: 1, ArrowRight: -1, ArrowDown: -1 };
+  let val = null;
+  if (e.key in map) val = Math.max(1, Math.min(10, cur + map[e.key]));
+  else if (e.key === 'Home') val = 1; else if (e.key === 'End') val = 10;
+  if (val === null) return;
+  e.preventDefault(); const k = el.dataset.k, tok = el.dataset.slide;
+  commitSlider(el, val);
+  const again = app.querySelector('.slider[data-slide="' + tok + '"][data-k="' + k + '"]'); if (again) again.focus();
 });
 
 /* ---------- boot ---------- */

@@ -1,5 +1,5 @@
-const APP_VERSION = '10';     // internal build number: bump on every upload, together with ?v= in index.html
-const APP_LABEL = '1.0.10';   // shown to players. 1.x.y: y = GitHub-only change, x = Firebase change (y resets to 0)
+const APP_VERSION = '11';     // internal build number: bump on every upload, together with ?v= in index.html
+const APP_LABEL = '1.0.11';   // shown to players. 1.x.y: y = GitHub-only change, x = Firebase change (y resets to 0)
 /* PeakTheVibe: constants, shared state and small utilities.
    Loaded first. All scripts are classic scripts sharing one global scope. */
 

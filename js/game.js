@@ -1,7 +1,10 @@
 /* PeakTheVibe: game rules. Scoring, stats, titles, round status, topic queue, language rules. Pure logic, no DOM, no Firebase writes. */
 
 /* ---------- scoring ---------- */
+/* Rating scale of a round: rounds created from v1.0.11 use 1-10, older rounds stay 1-5. */
+const scaleOf = r => (r && r.scale === 10) ? 10 : 5;
 function roundData(r) {
+  const sc = scaleOf(r);
   const picks = S.picks.filter(p => p.rid === r.id);
   const by = {}, gs = {};
   S.ratings.filter(x => x.rid === r.id).forEach(x => { by[x.uid] = x.scores || {}; gs[x.uid] = x.guesses || {} });
@@ -15,11 +18,14 @@ function roundData(r) {
     const complete = picks.filter(q => q.uid !== p.uid).every(q => mine[q.uid] && mine[q.uid].fit && mine[q.uid].fun);
     const n = got.length;
     const fit = n ? got.reduce((a, v) => a + v.fit, 0) / n : 0, fun = n ? got.reduce((a, v) => a + v.fun, 0) / n : 0;
-    const raw = r1(fit + fun);
+    // song points are always out of 10: (fit + fun) on a 1-5 round, their average on a 1-10 round
+    const raw = r1((fit + fun) * 5 / sc);
+    // averages converted to a 1-10 scale, so stats can mix old and new rounds fairly
+    const fit10 = fit * 10 / sc, fun10 = fun * 10 / sc;
     const hive = songKeys(p).some(k => keyMap[k].size > 1);
     let gRight = 0, gTot = 0;
     for (const [gu, g] of Object.entries(gs)) { if (gu === p.uid) continue; const v = g[p.uid]; if (v) { gTot++; if (v === p.uid) gRight++ } }
-    return { ...p, n, fit, fun, raw, complete, pts: complete ? raw : 0, hive, gRight, gTot };
+    return { ...p, n, fit, fun, fit10, fun10, raw, complete, pts: complete ? raw : 0, hive, gRight, gTot };
   });
   rows.sort((a, b) => b.pts - a.pts || b.raw - a.raw);
   const bonus = {}, made = {};
@@ -28,7 +34,7 @@ function roundData(r) {
     for (const [pu, v] of Object.entries(g)) { if (pu === gu || !pickers.has(pu) || !v) continue; m++; if (v === pu) c++ }
     if (c) bonus[gu] = c; if (m) made[gu] = m;
   }
-  return { rows, bonus, made, funny: funnyOf(r) };
+  return { rows, bonus, made, funny: funnyOf(r), scale: sc };
 }
 const doneRounds = () => S.rounds.filter(r => phase(r) === 'done');
 function aggregate(rounds) {
@@ -41,7 +47,7 @@ function aggregate(rounds) {
     d.rows.forEach(x => {
       const t = g(x.uid); t.pts += x.pts; t.played++;
       if (top !== null && x.pts === top) t.wins++;
-      if (x.n) { t.fitSum += x.fit; t.fitN++; if (d.funny) { t.funSum += x.fun; t.funN++ } }
+      if (x.n) { t.fitSum += x.fit10; t.fitN++; if (d.funny) { t.funSum += x.fun10; t.funN++ } }
       t.gOnRight += x.gRight; t.gOnTot += x.gTot; if (x.hive) t.hive++;
       if (x.complete && x.n && (!flop || x.pts < flop.pts)) flop = { ...x, topic: r.topic };
     });
@@ -110,7 +116,7 @@ function fallbackTopic(seed) {
 function buildLog(r) {
   const d = roundData(r);
   return {
-    rid: r.id, topic: r.topic, metric2: m2of(r), funny: funnyOf(r), createdAt: r.createdAt, pickEnds: r.pickEnds, rateEnds: r.rateEnds, loggedAt: now(),
+    rid: r.id, topic: r.topic, metric2: m2of(r), funny: funnyOf(r), scale: scaleOf(r), createdAt: r.createdAt, pickEnds: r.pickEnds, rateEnds: r.rateEnds, loggedAt: now(),
     results: d.rows.map((x, i) => ({ rank: i + 1, uid: x.uid, nick: nameOf(x.uid), title: x.title, artist: x.artist || '', url: x.url || '', artwork: x.artwork || '', source: x.source || 'manual', locked: !!x.locked,
       fit: r1(x.fit), fun: r1(x.fun), raters: x.n, pts: x.pts, complete: x.complete, guessedRight: x.gRight, guessedTotal: x.gTot, hive: x.hive })),
     bonus: Object.entries(d.bonus).map(([u, c]) => ({ uid: u, nick: nameOf(u), bonus: c })),

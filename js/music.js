@@ -204,3 +204,34 @@ async function togglePreview(key, tid) {
   render();
 }
 function stopPreview() { if (previewAudio) previewAudio.pause(); previewPlaying = ''; previewLoading = '' }
+
+/* ---------- winner's song during the results reveal ----------
+   Phones only allow sound that starts from a tap. The reveal begins a few seconds
+   after the tap, so the tap that opens it "unlocks" a dedicated audio element first. */
+let revealAudio = null;
+const SILENT_WAV = 'data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA';
+function primeRevealAudio() {
+  try {
+    if (!revealAudio) revealAudio = new Audio();
+    revealAudio.muted = true; revealAudio.src = SILENT_WAV;
+    const p = revealAudio.play();
+    if (p) p.then(() => { revealAudio.pause(); revealAudio.muted = false }).catch(() => { revealAudio.muted = false });
+  } catch (_) { }
+}
+async function playRevealSong(p, timers) {
+  try {
+    let src = safeUrl(p.previewUrl);
+    if (!src) return;
+    if (String(p.trackId || '').startsWith('dz')) src = (await freshDeezerPreview(p.trackId)) || '';
+    if (!src || !revealOn) return;
+    if (!revealAudio) revealAudio = new Audio();
+    stopPreview();
+    revealAudio.muted = false; revealAudio.src = src;
+    try { revealAudio.volume = 0 } catch (_) { }
+    await revealAudio.play();
+    let v = 0;
+    const fade = setInterval(() => { v = Math.min(1, v + 0.08); try { revealAudio.volume = v } catch (_) { } if (v >= 1) clearInterval(fade) }, 120);
+    if (timers) timers.push(fade);
+  } catch (_) { }
+}
+function stopRevealSong() { if (revealAudio) { try { revealAudio.pause() } catch (_) { } } }

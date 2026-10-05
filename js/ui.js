@@ -60,6 +60,7 @@ function downloadCsv() {
 
 /* ---------- rendering ---------- */
 function schedule() {
+  if (slideSt) { pending = true; return } // never redraw under a finger that is dragging a slider
   const a = document.activeElement;
   if (a && app.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { pending = true } else render();
   ensureToday();
@@ -114,7 +115,7 @@ function helpView() {
   ${item('🎵', 'כל יום נושא חדש', `הנושא נפתח כל יום ב-${hh(st.startHour)}. יש ${st.pickHours} שעות לבחור שיר שמתאים לו.`)}
   ${item('✏️', 'בוחרים שיר', 'כותבים שם שיר ואמן. לינק מספוטיפיי, אפל מיוזיק או יוטיוב לא חובה, אבל עוזר לכולם לשמוע.')}
   ${item('🔒', 'שומרים או נועלים', '"שמור" שומר טיוטה שאפשר לשנות כמה שרוצים. "נעל" זה סופי. שכחתם לנעול? הטיוטה נספרת בסוף הזמן.')}
-  ${item('⭐', 'מדרגים', `אחרי זמן הבחירה יש ${st.rateHours} שעות לדרג. השירים מוצגים בלי שמות, וכל שיר מקבל 1 עד 5 בשני מדדים: 🎯 כמה מתאים לנושא, ו-✨ מדד שני שמשתנה בכל נושא. את השיר שלכם לא מדרגים.`)}
+  ${item('⭐', 'מדרגים', `אחרי זמן הבחירה יש ${st.rateHours} שעות לדרג. השירים מוצגים בלי שמות, וכל שיר מקבל ציון מ-1 עד 10 (גוררים את המחוון) בשני מדדים: 🎯 כמה מתאים לנושא, ו-✨ מדד שני שמשתנה בכל נושא. את השיר שלכם לא מדרגים.`)}
   <div class="hitem warn">${'<span class="hic">⚠️</span>'}<div><b>החוק הכי חשוב</b><p>בחרתם שיר? חייבים לדרג את כל השירים האחרים. אחרת השיר שלכם מקבל 0 בסבב.</p></div></div>
   ${item('🕵️', 'מנחשים מי בחר', 'ליד כל שיר בוחרים מי לדעתכם בחר אותו. כל ניחוש נכון שווה נקודת בונוס.')}
   ${item('🏆', 'ניקוד ותארים', 'כל שיר מקבל את הממוצע של שני המדדים מכל המדרגים, עד 10 נקודות, ועוד בונוסים מניחושים. בלשונית 🏆 מובילים יש לוח שבועי (מיום ראשון), לוח של כל הזמנים, תארים מצחיקים ופרופיל לכל שחקן.')}
@@ -395,12 +396,15 @@ function roundView(r) {
       if (p.uid === me) return songCard(p, { self: true, tag: 'השיר שלך, לא מדרגים אותו' });
       const tok = songTok(r.id, p.uid);
       const v = d.scores[p.uid] || {};
+      const slider = (k, cls) => { const val = v[k] || 0, pct = val ? (val - 1) / 9 : 0.5;
+        return `<div class="slider ${cls || ''} ${val ? 'set' : ''} ${locked ? 'dis' : ''}" role="slider" tabindex="${locked ? -1 : 0}" aria-valuemin="1" aria-valuemax="10" aria-valuenow="${val || ''}" data-slide="${tok}" data-k="${k}" style="--p:${pct}"><div class="trk"><div class="fill"></div><div class="thumb"></div></div><span class="sval">${val || 'גררו'}</span></div><div class="sticks"><span>1</span><span>10</span></div>` };
+      const ten = scaleOf(r) === 10;
       const dots = k => [1, 2, 3, 4, 5].map(n => `<button class="${v[k] === n ? 'on' : ''}" data-act="rate" data-u="${tok}" data-k="${k}" data-n="${n}" aria-label="${n}" ${dis}>${n}</button>`).join('');
       const gs = cands.length > 1 ? `<div class="scale"><span>🕵️ מי בחר את השיר? (בונוס)</span><div class="chips guess">${cands.map(u => `<button class="${d.guesses[p.uid] === u ? 'on' : ''}" data-act="guess" data-u="${tok}" data-g="${esc(u)}" ${dis}>${withAv(u, 'xxs')}</button>`).join('')}</div></div>` : '';
       const ok = v.fit && v.fun;
       return songCard(p, { tag: ok ? '✓ דורג' : '', body: `<div class="rates">
-        <div class="scale"><span>🎯 כמה מתאים לנושא</span><div class="dots">${dots('fit')}</div></div>
-        <div class="scale"><span>✨ ${esc(m2of(r))}</span><div class="dots fun">${dots('fun')}</div></div>${gs}</div>` });
+        <div class="scale"><span>🎯 כמה מתאים לנושא</span>${ten ? slider('fit') : `<div class="dots">${dots('fit')}</div>`}</div>
+        <div class="scale"><span>✨ ${esc(m2of(r))}</span>${ten ? slider('fun', 'fun') : `<div class="dots fun">${dots('fun')}</div>`}</div>${gs}</div>` });
     }).join('') + '</div>';
     if (adm) {
       const st = roundStatus(r);
@@ -423,7 +427,7 @@ function roundView(r) {
     <div class="sub">${x.complete ? `<span>🎯 ${x.fit.toFixed(1)}</span><span>✨ ${x.fun.toFixed(1)}</span>` : '<span style="color:var(--warn);font-weight:700">לא סיים/ה לדרג, 0 נקודות</span>'}${x.gTot ? `<span>🕵️ ${x.gRight}/${x.gTot} ניחשו</span>` : ''}${x.hive ? '<span>🐑 Hive Mind</span>' : ''}</div>${linksHtml(x)}</div>`).join('');
     const b = Object.entries(rd.bonus).sort((a, c) => c[1] - a[1]);
     h += `<h2>בונוס ניחושים</h2>` + (b.length ? b.map(([u, c]) => `<div class="qrow"><div class="qt">${esc(nameOf(u))}</div><b>+${c}</b></div>`).join('') : `<p class="muted">אף אחד לא ניחש נכון הפעם.</p>`);
-    h += `<p class="hint" style="margin-top:12px">ניקוד שיר: ממוצע (🎯 + ✨) מכל המדרגים, עד 10. כל ניחוש נכון: נקודה נוספת.</p>`;
+    h += `<p class="hint" style="margin-top:12px">${scaleOf(r) === 10 ? 'ניקוד שיר: הממוצע של 🎯 ו-✨ מכל המדרגים, מ-1 עד 10.' : 'ניקוד שיר: ממוצע (🎯 + ✨) מכל המדרגים, עד 10.'} כל ניחוש נכון: נקודה נוספת.</p>`;
   }
   return h;
 }
@@ -456,8 +460,8 @@ function profileView(uid) {
   h += `<div class="stats">
     ${stat('🏆', 'ניצחונות יומיים', ag.wins)}
     ${stat('⭐', 'נקודות בסך הכל', ag.total)}
-    ${stat('🎯', 'ממוצע התאמה', ag.fitN ? (ag.fitSum / ag.fitN).toFixed(1) : '–')}
-    ${stat('😂', 'ממוצע מצחיק', ag.funN ? (ag.funSum / ag.funN).toFixed(1) : '–')}
+    ${stat('🎯', 'ממוצע התאמה (מתוך 10)', ag.fitN ? (ag.fitSum / ag.fitN).toFixed(1) : '–')}
+    ${stat('😂', 'ממוצע מצחיק (מתוך 10)', ag.funN ? (ag.funSum / ag.funN).toFixed(1) : '–')}
     ${stat('🎵', 'שירים שנבחרו', songs.length)}
     ${stat('🔥', 'סבבים ברצף', streak(uid))}
     ${stat('🔮', 'ניחושים נכונים', ag.gMade ? ag.bonus + '/' + ag.gMade : '–')}
@@ -485,7 +489,8 @@ function maybeReveal(r) {
   setTimeout(() => startReveal(r), 0);
 }
 function closeReveal() {
-  revealTimers.splice(0).forEach(clearTimeout);
+  revealTimers.splice(0).forEach(id => { clearTimeout(id); clearInterval(id) });
+  stopRevealSong();
   const el = document.getElementById('reveal'); if (!el) return;
   el.hidden = true; el.innerHTML = ''; revealOn = null;
   document.body.classList.remove('rv-open');
@@ -516,6 +521,7 @@ function startReveal(r) {
         <div class="rv-pts">${x.pts}<small>נק׳</small></div>`;
       stage.prepend(card);
       if (i === seq.length - 1) {
+        if (place === 1) playRevealSong(x, revealTimers);
         if (win && !reduce) confetti(el);
         el.querySelector('.rv-done').hidden = false;
       }
