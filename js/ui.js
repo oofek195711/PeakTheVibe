@@ -35,7 +35,8 @@ function trackerHtml(r) {
   const t = roundStatus(r);
   return `<div class="track"><div class="tcount">${t.groups.map(g => `<span>${g.ic} ${g.u.length}</span>`).join('')}</div>
   ${t.groups.filter(g => g.u.length).map(g => `<div class="tg"><small>${g.ic} ${g.l}</small><div>${g.u.map(u => esc(nameOf(u)) + (t.ph === 'rate' && !t.pickers.has(u) ? ' <span class="muted">(לא בחר/ה שיר)</span>' : '')).join(', ')}</div></div>`).join('')}
-  ${t.ph === 'rate' ? '<p class="hint" style="margin:6px 0 0">"כולם נעלו" נבדק רק אצל מי שבחר שיר.</p>' : ''}</div>`;
+  ${t.ph === 'rate' ? '<p class="hint" style="margin:6px 0 0">"כולם נעלו" נבדק רק אצל מי שבחר שיר.</p>' : ''}
+  <div class="row-actions remind"><button class="btn" style="flex:1" data-act="remindwa" data-v="${esc(r.id)}">📣 שלח תזכורת בוואטסאפ</button><button class="btn ghost" data-act="remindcopy" data-v="${esc(r.id)}" aria-label="העתק תזכורת">📋</button></div></div>`;
 }
 function historyView() {
   const L = Object.values(S.logs || {}).sort((a, b) => b.createdAt - a.createdAt);
@@ -391,8 +392,8 @@ function adminView() {
   <div class="row-actions"><button class="btn block" data-act="nextnow">פתח עכשיו את הנושא הבא בתור</button><button class="btn ghost block" data-act="go" data-v="new">פתח סבב מיידי עם נושא משלך</button></div>`;
   const ina = inactiveSet(), pl = Object.entries(S.players).sort((a, b) => (a[1].joined || 0) - (b[1].joined || 0));
   h += `<h2>שחקנים (${pl.length - pl.filter(([u]) => ina.has(u)).length} פעילים מתוך ${pl.length})</h2>
-  <p class="hint" style="margin:0 0 8px">שחקן לא פעיל לא נספר במונה "כולם נעלו". אם יבחר שיר, ישחק כרגיל.</p>`;
-  h += pl.map(([u, p]) => `<div class="qrow">${avatarHtml(u, 'sm')}<div class="qt">${esc(p.nick)}${u === me ? ' (את/ה)' : ''}<small>${p.fullName ? esc(p.fullName) + ', ' : ''}הצטרף/ה ${p.joined ? fmtDate(p.joined) : ''}, ${S.picks.filter(x => x.uid === u).length} שירים</small></div><button class="btn ${ina.has(u) ? 'ghost' : ''}" style="min-height:40px;padding:6px 14px;font-size:14px" data-act="toggleactive" data-v="${esc(u)}">${ina.has(u) ? 'לא פעיל' : 'פעיל'}</button></div>`).join('');
+  <p class="hint" style="margin:0 0 8px">שחקן לא פעיל לא נספר במונה "כולם נעלו". אם יבחר שיר, ישחק כרגיל. 🗑️ מוחק שחקן לגמרי, למשל זהות כפולה או שחקן בדיקה.</p>`;
+  h += pl.map(([u, p]) => `<div class="qrow">${avatarHtml(u, 'sm')}<div class="qt">${esc(p.nick)}${u === me ? ' (את/ה)' : ''}<small>${p.fullName ? esc(p.fullName) + ', ' : ''}הצטרף/ה ${p.joined ? fmtDate(p.joined) : ''}, ${S.picks.filter(x => x.uid === u).length} שירים</small></div><button class="btn ${ina.has(u) ? 'ghost' : ''}" style="min-height:40px;padding:6px 14px;font-size:14px" data-act="toggleactive" data-v="${esc(u)}">${ina.has(u) ? 'לא פעיל' : 'פעיל'}</button>${u === me || u === S.admin ? '' : `<button class="btn ghost danger" style="min-height:40px;padding:6px 12px;font-size:14px;margin-inline-start:6px" data-act="delplayer" data-v="${esc(u)}" aria-label="מחק שחקן">🗑️</button>`}</div>`).join('');
   return h;
 }
 function steps(ph) {

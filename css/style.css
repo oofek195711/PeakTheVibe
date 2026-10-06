@@ -377,3 +377,4 @@ button.qrow.pickme{width:100%;border:0;text-align:right;cursor:pointer}
 .fbhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;font-size:14px}
 .fbtext{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45;margin-bottom:4px}
 .fbreply{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--chip);font-size:14px;white-space:pre-wrap}
+.remind{margin-top:12px}

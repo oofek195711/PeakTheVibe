@@ -71,6 +71,20 @@ app.addEventListener('click', async e => {
     const s = D.set;
     await write(() => db.doc('config/settings').set({ startHour: s.sh, pickHours: s.ph, rateHours: s.rh }, { merge: true }), 'נשמר');
   }
+  else if (a === 'delplayer') {
+    const p = S.players[v]; if (!p || v === me || v === S.admin) return;
+    const nPicks = S.picks.filter(x => x.uid === v).length, nRates = S.ratings.filter(x => x.uid === v).length;
+    if (!confirm(`למחוק את ${p.nick}${p.fullName ? ' (' + p.fullName + ')' : ''}?\n\nיימחקו: הפרופיל, ${nPicks} שירים ו-${nRates} דירוגים שלו/ה. הניקוד שלו/ה ייעלם, והדירוגים שנתן/ה לאחרים לא ייספרו יותר.\n\nאי אפשר לבטל.`)) return;
+    const refs = [db.doc('players/' + v)];
+    S.picks.filter(x => x.uid === v).forEach(x => refs.push(db.doc('picks/' + x.rid + '__' + v)));
+    S.ratings.filter(x => x.uid === v).forEach(x => refs.push(db.doc('ratings/' + x.rid + '__' + v)));
+    (S.links || []).filter(l => l.target === v || l.id === v).forEach(l => refs.push(db.doc('links/' + l.id)));
+    const F = firebase.firestore.FieldValue;
+    await write(async () => {
+      for (let i = 0; i < refs.length; i += 400) { const w = db.batch(); refs.slice(i, i + 400).forEach(r => w.delete(r)); await w.commit() }
+      if (inactiveSet().has(v)) await db.doc('config/settings').set({ inactive: F.arrayRemove(v) }, { merge: true });
+    }, p.nick + ' נמחק/ה');
+  }
   else if (a === 'toggleactive') {
     const F = firebase.firestore.FieldValue, isIn = inactiveSet().has(v);
     await write(() => db.doc('config/settings').set({ inactive: isIn ? F.arrayRemove(v) : F.arrayUnion(v) }, { merge: true }));
@@ -109,6 +123,12 @@ app.addEventListener('click', async e => {
   }
   else if (a === 'fbdone') { const f = (S.feedback || []).find(x => x.id === v); if (f) await write(() => db.doc('feedback/' + v).update({ status: f.status === 'done' ? 'new' : 'done' })) }
   else if (a === 'fbdel') { if (confirm('למחוק את ההודעה?')) await write(() => db.doc('feedback/' + v).delete(), 'נמחק') }
+  else if (a === 'remindwa' || a === 'remindcopy') {
+    const r = S.rounds.find(x => x.id === v); if (!r) return;
+    const txt = reminderText(r);
+    if (a === 'remindcopy') { try { await navigator.clipboard.writeText(txt); toast('התזכורת הועתקה') } catch (_) { toast('לא הצלחתי להעתיק במכשיר הזה') } }
+    else window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+  }
   else if (a === 'htab') { homeTab = v; render() }
   else if (a === 'rmphoto') { if (confirm('להסיר את תמונת הפרופיל?')) await write(() => db.doc('players/' + me).update({ photo: firebase.firestore.FieldValue.delete() }), 'התמונה הוסרה') }
   else if (a === 'glogin') { googleSignIn() }

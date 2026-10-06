@@ -145,3 +145,17 @@ function langWarning(r, title, artist) {
 /* Anonymous per-round token for a song, so the rating screen never carries the submitter's id. */
 const songTok = (rid, uid) => 's' + hash(rid + '|' + uid).toString(36);
 const uidFromTok = (rid, tok) => { const p = S.picks.find(x => x.rid === rid && songTok(rid, x.uid) === tok); return p ? p.uid : null };
+
+/* Reminder message the admin can send to the group: who hasn't locked yet, and how long is left. */
+const GAME_URL = 'https://oofek195711.github.io/PeakTheVibe/';
+function reminderText(r) {
+  const t = roundStatus(r), ph = phase(r);
+  const left = fmtLeft((ph === 'pick' ? r.pickEnds : r.rateEnds) - now());
+  const miss = t.groups.filter(g => g.ic !== '🔒').flatMap(g => g.u).filter(u => ph === 'pick' || t.pickers.has(u));
+  const lines = ['🎧 *PeakTheVibe*', '', '*' + r.topic + '*',
+    ph === 'pick' ? `⏰ נשארו ${left} לבחור שיר!` : `⭐ נשארו ${left} לדרג את השירים!`];
+  if (miss.length) lines.push('', (ph === 'pick' ? 'עוד לא נעלו בחירה: ' : 'עוד לא נעלו דירוג: ') + miss.map(nameOf).join(', '));
+  if (ph === 'rate') lines.push('', 'זוכרים: מי שבחר שיר ולא דירג את כולם מקבל 0 🙃');
+  lines.push('', '👇 ' + GAME_URL);
+  return lines.join('\n');
+}
