@@ -151,10 +151,16 @@ const GAME_URL = 'https://oofek195711.github.io/PeakTheVibe/';
 function reminderText(r) {
   const t = roundStatus(r), ph = phase(r);
   const left = fmtLeft((ph === 'pick' ? r.pickEnds : r.rateEnds) - now());
-  const miss = t.groups.filter(g => g.ic !== '🔒').flatMap(g => g.u).filter(u => ph === 'pick' || t.pickers.has(u));
+  // a saved song counts as done; in rating, a saved rating of every song counts as done
+  const picks = S.picks.filter(p => p.rid === r.id);
+  const ratedAll = u => { const x = S.ratings.find(y => y.rid === r.id && y.uid === u), sc = (x && x.scores) || {};
+    return !!x && picks.filter(p => p.uid !== u).every(p => sc[p.uid] && sc[p.uid].fit && sc[p.uid].fun) };
+  const miss = ph === 'pick'
+    ? t.groups.filter(g => g.ic === '👀' || g.ic === '💤').flatMap(g => g.u)
+    : [...t.pickers].filter(u => !ratedAll(u));
   const lines = ['🎧 *PeakTheVibe*', '', '*' + r.topic + '*',
     ph === 'pick' ? `⏰ נשארו ${left} לבחור שיר!` : `⭐ נשארו ${left} לדרג את השירים!`];
-  if (miss.length) lines.push('', (ph === 'pick' ? 'עוד לא נעלו בחירה: ' : 'עוד לא נעלו דירוג: ') + miss.map(nameOf).join(', '));
+  if (miss.length) lines.push('', (ph === 'pick' ? 'עוד לא בחרו שיר: ' : 'עוד לא דירגו את כל השירים: ') + miss.map(nameOf).join(', '));
   if (ph === 'rate') lines.push('', 'זוכרים: מי שבחר שיר ולא דירג את כולם מקבל 0 🙃');
   lines.push('', '👇 ' + GAME_URL);
   return lines.join('\n');
