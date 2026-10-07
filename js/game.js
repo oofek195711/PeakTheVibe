@@ -116,7 +116,7 @@ function fallbackTopic(seed) {
 function buildLog(r) {
   const d = roundData(r);
   return {
-    rid: r.id, topic: r.topic, metric2: m2of(r), funny: funnyOf(r), scale: scaleOf(r), createdAt: r.createdAt, pickEnds: r.pickEnds, rateEnds: r.rateEnds, loggedAt: now(),
+    rid: r.id, topic: r.topic, metric2: m2of(r), funny: funnyOf(r), scale: scaleOf(r), img: r.img || '', createdAt: r.createdAt, pickEnds: r.pickEnds, rateEnds: r.rateEnds, loggedAt: now(),
     results: d.rows.map((x, i) => ({ rank: i + 1, uid: x.uid, nick: nameOf(x.uid), title: x.title, artist: x.artist || '', url: x.url || '', artwork: x.artwork || '', source: x.source || 'manual', locked: !!x.locked,
       fit: r1(x.fit), fun: r1(x.fun), raters: x.n, pts: x.pts, complete: x.complete, guessedRight: x.gRight, guessedTotal: x.gTot, hive: x.hive })),
     bonus: Object.entries(d.bonus).map(([u, c]) => ({ uid: u, nick: nameOf(u), bonus: c })),
@@ -158,7 +158,7 @@ function reminderText(r) {
   const miss = ph === 'pick'
     ? t.groups.filter(g => g.ic === '👀' || g.ic === '💤').flatMap(g => g.u)
     : [...t.pickers].filter(u => !ratedAll(u));
-  const lines = ['🎧 *PeakTheVibe*', '', '*' + r.topic + '*',
+  const lines = ['🎧 *PeakTheVibe*', '', '*' + r.topic + '*', ...(r.img ? ['🖼️ הנושא הפעם הוא תמונה, נכנסים לראות'] : []),
     ph === 'pick' ? `⏰ נשארו ${left} לבחור שיר!` : `⭐ נשארו ${left} לדרג את השירים!`];
   if (miss.length) lines.push('', (ph === 'pick' ? 'עוד לא בחרו שיר: ' : 'עוד לא דירגו את כל השירים: ') + miss.map(nameOf).join(', '));
   if (ph === 'rate') lines.push('', 'זוכרים: מי שבחר שיר ולא דירג את כולם מקבל 0 🙃');

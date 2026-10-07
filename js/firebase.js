@@ -36,8 +36,8 @@ async function ensureToday() {
   attempted[id] = true;
   const head = queue()[0];
   let topic, metric2, funny, tref = null;
-  let lang = 'any';
-  if (head) { topic = head.text; metric2 = head.metric2 || DEFAULT_M.m; funny = head.funny !== false; lang = langOf(head); tref = db.doc('topics/' + head.id) }
+  let lang = 'any', img = '';
+  if (head) { img = head.img || ''; topic = head.text; metric2 = head.metric2 || DEFAULT_M.m; funny = head.funny !== false; lang = langOf(head); tref = db.doc('topics/' + head.id) }
   else {
     ({ topic, metric2, funny } = fallbackTopic(id));
   }
@@ -48,7 +48,7 @@ async function ensureToday() {
       const rs = await t.get(rref);
       if (rs.exists) return;
       if (tref) { const ts = await t.get(tref); if (!ts.exists || ts.data().status !== 'approved') throw new Error('stale') }
-      t.set(rref, { topic, metric2, funny, lang, scale: 10, auto: true, by: 'auto', createdAt: st, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 });
+      t.set(rref, { topic, metric2, funny, lang, ...(img ? { img } : {}), scale: 10, auto: true, by: 'auto', createdAt: st, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 });
       if (tref) t.update(tref, { status: 'used', usedOn: id });
     });
   } catch (e) { setTimeout(() => { attempted[id] = false }, 20000) }
@@ -159,4 +159,25 @@ async function bootFirebase() {
     db.doc('config/settings').onSnapshot(s => { S.settings = { startHour: 10, pickHours: 24, rateHours: 24, inactive: [], ...(s.exists ? s.data() : {}) }; S.loaded.settings = true; delete D.set; schedule() }, err);
     render();
   });
+}
+
+/* ---------- topic images ----------
+   A topic can be a picture. Pictures are stored one per document in `images/`,
+   outside the rounds list, so the list stays small; each loads once when first shown.
+   getImg returns: the image (data URL), null while loading, '' if missing. */
+const IMG = {};
+const safeImg = p => (typeof p === 'string' && p.length < 500000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p)) ? p : '';
+function getImg(id) {
+  if (!id || !db) return '';
+  if (id in IMG) return IMG[id];
+  IMG[id] = null;
+  db.doc('images/' + id).get()
+    .then(s => { IMG[id] = s.exists ? safeImg(s.data().data) : '' })
+    .catch(() => { IMG[id] = '' })
+    .then(() => {
+      // fill placeholders already on screen (including the results reveal layer), then redraw
+      document.querySelectorAll('[data-img="' + id + '"]').forEach(el => { el.innerHTML = IMG[id] ? '<img src="' + IMG[id] + '" alt="תמונת הנושא">' : '' });
+      schedule();
+    });
+  return null;
 }

@@ -122,7 +122,7 @@ function helpView() {
   <div class="hitem warn">${'<span class="hic">⚠️</span>'}<div><b>החוק הכי חשוב</b><p>בחרתם שיר? חייבים לדרג את כל השירים האחרים. אחרת השיר שלכם מקבל 0 בסבב.</p></div></div>
   ${item('🕵️', 'מנחשים מי בחר', 'ליד כל שיר בוחרים מי לדעתכם בחר אותו. כל ניחוש נכון שווה נקודת בונוס.')}
   ${item('🏆', 'ניקוד ותארים', 'כל שיר מקבל את הממוצע של שני המדדים מכל המדרגים, עד 10 נקודות, ועוד בונוסים מניחושים. בלשונית 🏆 מובילים יש לוח שבועי (מיום ראשון), לוח של כל הזמנים, תארים מצחיקים ופרופיל לכל שחקן.')}
-  ${item('💡', 'יש לכם רעיון לנושא?', 'כפתור "הצע נושא" בתחתית המסך. אם המנהל יאשר, הוא יעלה באחד הימים, בלי שאף אחד יידע שזה שלכם.')}
+  ${item('💡', 'יש לכם רעיון לנושא?', 'כפתור "הצע נושא" בתחתית המסך. אפשר להציע משפט, או תמונה שכולם יבחרו לה שיר. אם המנהל יאשר, הוא יעלה באחד הימים, בלי שאף אחד יידע שזה שלכם.')}
   ${item('💬', 'משהו לא עובד?', 'בתחתית כל מסך יש "שלחו משוב". כתבו מה קרה או מה הייתם רוצים, וזה מגיע ישר למנהל.')}
   ${item('📱', 'טיפ חשוב', 'הוסיפו את המשחק למסך הבית ופתחו אותו תמיד משם, כי המשחק מזהה אתכם לפי הדפדפן. כדאי לגבות עם Google בפרופיל שלכם: ככה תוכלו להתחבר מכל מכשיר. לא גיביתם והחלפתם טלפון? במסך הכניסה בחרו "שחזר את החשבון שלי", והמנהל יאשר.')}
   <button class="btn block" style="margin-top:18px" data-act="helpdone">הבנתי, יאללה</button>`;
@@ -145,6 +145,20 @@ function nickView() {
   <div class="panel restorebox"><b>כבר שיחקת במכשיר אחר?</b><p class="hint" style="margin:4px 0 10px">גיביתם עם Google? התחברו ישר. לא גיביתם? בחרו את השם שלכם והמנהל יאשר.</p>
   <button class="btn ghost block" data-act="go" data-v="restore">שחזר את החשבון שלי</button>
   <button class="btn ghost block" style="margin-top:8px" data-act="glogin">🔐 כבר גיביתי? התחברות עם Google</button></div></div>${FOOT()}`;
+}
+function topicImgHtml(r, cls) {
+  if (!r || !r.img) return '';
+  const d = getImg(r.img);
+  return `<span class="timg ${cls || ''}" data-img="${esc(r.img)}">${d ? `<img src="${d}" alt="תמונת הנושא">` : d === null ? '<span class="muted">טוען תמונה…</span>' : ''}</span>`;
+}
+/* Admin: attach a picture to a topic. d.imgData = newly chosen (not uploaded yet), d.img = id of a saved one. */
+function imgPicker(key) {
+  const d = D[key] || {}, has = !!(d.imgData || d.img), data = d.imgData || (d.img ? getImg(d.img) : '');
+  const file = `<input type="file" accept="image/*" data-timg="${esc(key)}" hidden>`;
+  return `<label class="f" style="margin-top:${key === 'sg' ? 0 : 14}px">תמונה לנושא</label>` + (has
+    ? `<span class="timg sm" ${d.img && !d.imgData ? `data-img="${esc(d.img)}"` : ''}>${data ? `<img src="${data}" alt="">` : '<span class="muted">טוען תמונה…</span>'}</span>
+       <div class="row-actions" style="margin-top:0"><label class="btn ghost sm">החלף תמונה${file}</label><button class="btn ghost sm" data-act="rmtimg" data-k="${esc(key)}">הסר תמונה</button></div>`
+    : `<label class="btn ghost block">🖼️ העלה תמונה${file}</label><p class="hint" style="margin:6px 0 0">השחקנים יבחרו שיר שמתאים לתמונה. עם תמונה אפשר להשאיר את שדה הנושא ריק, או לכתוב בו כיתוב קצר.</p>`);
 }
 function langPicker(key) {
   const cur = (D[key] && D[key].lang) || 'any';
@@ -323,7 +337,7 @@ function homeView() {
     const cnt = isAdmin() && ph !== 'done' ? `<span class="adm">${roundStatus(r).short}</span>` : '';
     const lang = langOf(r) !== 'any' ? `<span class="langtag ${langOf(r)}">${LANGS[langOf(r)].ic} ${langOf(r) === 'he' ? 'עברית בלבד' : 'אנגלית בלבד'}</span>` : '';
     return `<button class="round rcard" style="--c:${c}" data-act="open" data-v="${esc(r.id)}">
-      <span class="rinfo"><span class="display">${esc(r.topic)}</span>${lang}<span class="rmeta">${picks.length === 1 ? 'שיר אחד' : picks.length + ' שירים'}${cnt ? ' · ' + cnt : ''}</span><span class="rmeta">${time}</span></span>
+      <span class="rinfo">${topicImgHtml(r, 'thumb')}<span class="display">${esc(r.topic)}</span>${lang}<span class="rmeta">${picks.length === 1 ? 'שיר אחד' : picks.length + ' שירים'}${cnt ? ' · ' + cnt : ''}</span><span class="rmeta">${time}</span></span>
       <span class="cta ${ctaCls}">${cta}</span></button>`;
   };
   const unseen = done.filter(r => !revealSeen(r.id) && now() - r.rateEnds < 7 * 864e5).length;
@@ -343,23 +357,27 @@ function newView() {
   <label class="f" for="topic">הנושא</label>
   <textarea id="topic" class="field" data-f="new.t" maxlength="90">${esc(d.t)}</textarea>
   ${ideaChips('new')}
-  ${metricPicker('new')}${langPicker('new')}
+  ${imgPicker('new')}${metricPicker('new')}${langPicker('new')}
   <div class="two" style="margin-top:14px"><div><label class="f">זמן לבחירה</label><select class="field" data-f="new.ph">${hoursOpt(d.ph)}</select></div>
   <div><label class="f">זמן לדירוג</label><select class="field" data-f="new.rh">${hoursOpt(d.rh)}</select></div></div>
   <button class="btn block" data-act="create" ${busy ? 'disabled' : ''}>פתח את הסבב עכשיו</button></div>`;
 }
 function suggestView() {
-  const d = draft('sg', () => ({ t: '', m: DEFAULT_M.m, f: true }));
+  const d = draft('sg', () => ({ kind: 'text', t: '', m: DEFAULT_M.m, f: true }));
+  const isImg = d.kind === 'img';
   const mine = S.topics.filter(t => t.by === me).sort((a, b) => b.createdAt - a.createdAt);
   const st = { pending: 'ממתין לאישור', approved: 'אושר, בתור', used: 'עלה לאוויר', rejected: 'לא אושר' };
   return `<div class="display" style="font-size:48px;margin:4px 0 6px">הצע נושא</div>
-  <p class="hint" style="margin:0 0 14px">הנושא נשלח למנהל. אם יאושר, הוא ייכנס לתור ויעלה באחד הימים, בלי שיופיע מי כתב אותו.</p>
-  <div class="panel"><label class="f" for="sgt">הנושא</label>
+  <p class="hint" style="margin:0 0 14px">מציעים משפט או תמונה. ההצעה נשלחת למנהל, ואם תאושר היא תיכנס לתור ותעלה באחד הימים, בלי שיופיע מי הציע.</p>
+  <div class="panel"><div class="seg" style="margin-bottom:14px"><button class="${isImg ? '' : 'on'}" data-act="sgkind" data-v="text">✏️ משפט</button><button class="${isImg ? 'on' : ''}" data-act="sgkind" data-v="img">🖼️ תמונה</button></div>
+  ${isImg
+    ? `${imgPicker('sg')}<label class="f" for="sgt" style="margin-top:14px">כיתוב (לא חובה)</label><input id="sgt" class="field" data-f="sg.t" maxlength="90" value="${esc(d.t)}" placeholder="למשל: שיר שמתאים לתמונה הזו">`
+    : `<label class="f" for="sgt">הנושא</label>
   <textarea id="sgt" class="field" data-f="sg.t" maxlength="90" placeholder="שיר שמתאים לבוס האחרון במשחק">${esc(d.t)}</textarea>
-  ${ideaChips('sg')}
+  ${ideaChips('sg')}`}
   ${metricPicker('sg')}
   <button class="btn block" style="margin-top:14px" data-act="submittopic" ${busy ? 'disabled' : ''}>שלח למנהל</button></div>
-  ${mine.length ? `<h2>הנושאים ששלחת</h2>` + mine.map(t => `<div class="qrow"><div class="qt">${esc(t.text)}</div><span class="pill ${t.status === 'used' ? 'rate' : ''}">${st[t.status] || ''}</span></div>`).join('') : ''}`;
+  ${mine.length ? `<h2>הנושאים ששלחת</h2>` + mine.map(t => `<div class="qrow"><div class="qt">${t.img ? '🖼️ ' : ''}${esc(t.text)}</div><span class="pill ${t.status === 'used' ? 'rate' : ''}">${st[t.status] || ''}</span></div>`).join('') : ''}`;
 }
 function adminView() {
   const P = pendingTopics(), Q = queue();
@@ -369,20 +387,20 @@ function adminView() {
   <button class="btn ghost block" data-act="go" data-v="history" style="margin-bottom:6px">📜 היסטוריית תוצאות (${Object.keys(S.logs || {}).length})</button>` + identityAdminHtml() + diagAdminHtml() + (() => { const n = (S.feedback || []).filter(f => f.status === 'new').length; return `<button class="btn ${n ? '' : 'ghost'} block" data-act="go" data-v="inbox" style="margin-top:10px">💬 משוב ותקלות${n ? ` (${n} חדשים)` : ` (${(S.feedback || []).length})`}</button>` })();
   h += `<h2>ממתינים לאישור (${P.length})</h2>`;
   h += P.length ? P.map(t => {
-    const k = 'ed:' + t.id; draft(k, () => ({ t: t.text, m: t.metric2 || DEFAULT_M.m, f: t.funny !== false, lang: t.lang || 'any' }));
+    const k = 'ed:' + t.id; draft(k, () => ({ t: t.text, m: t.metric2 || DEFAULT_M.m, f: t.funny !== false, lang: t.lang || 'any', img: t.img || '' }));
     return `<div class="panel" style="margin-bottom:10px"><p class="hint" style="margin:0 0 6px">נשלח ע״י ${esc(nameOf(t.by))}</p>
-    <textarea class="field" data-f="${k}.t" maxlength="90">${esc(D[k].t)}</textarea>${metricPicker(k)}${langPicker(k)}
+    <textarea class="field" data-f="${k}.t" maxlength="90">${esc(D[k].t)}</textarea>${imgPicker(k)}${metricPicker(k)}${langPicker(k)}
     <div class="row-actions"><button class="btn" data-act="approve" data-v="${esc(t.id)}">אשר והכנס לתור</button><button class="btn ghost" data-act="reject" data-v="${esc(t.id)}">דחה</button></div></div>`;
   }).join('') : `<p class="muted">אין נושאים שממתינים.</p>`;
   h += `<h2>התור (${Q.length})</h2>`;
   h += Q.length ? Q.map((t, i) => {
     const d = new Date(first); d.setDate(d.getDate() + i);
-    return `<div class="qrow"><div class="qt">${esc(t.text)}<small>${fmtDate(d.getTime())} · ${esc(t.metric2 || DEFAULT_M.m)}${langOf(t) !== 'any' ? ' · ' + LANGS[langOf(t)].ic + ' ' + LANGS[langOf(t)].l : ''}</small></div>
+    return `<div class="qrow"><div class="qt">${t.img ? '🖼️ ' : ''}${esc(t.text)}<small>${fmtDate(d.getTime())} · ${esc(t.metric2 || DEFAULT_M.m)}${langOf(t) !== 'any' ? ' · ' + LANGS[langOf(t)].ic + ' ' + LANGS[langOf(t)].l : ''}</small></div>
     <span class="qbtns"><button data-act="qmove" data-v="${esc(t.id)}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="למעלה">▲</button><button data-act="qmove" data-v="${esc(t.id)}" data-d="1" ${i === Q.length - 1 ? 'disabled' : ''} aria-label="למטה">▼</button><button data-act="qdel" data-v="${esc(t.id)}" aria-label="מחק">✕</button></span></div>`;
   }).join('') : `<p class="muted">התור ריק. כשאין נושא בתור, נבחר נושא מהמאגר המובנה.</p>`;
   draft('add', () => ({ t: '', m: DEFAULT_M.m, f: true }));
   h += `<details data-k="addq" class="panel" style="margin-top:10px"><summary><b>הוסף נושא ישר לתור</b></summary><div style="margin-top:12px">
-  <textarea class="field" data-f="add.t" maxlength="90">${esc(D.add.t)}</textarea>${ideaChips('add')}${metricPicker('add')}${langPicker('add')}
+  <textarea class="field" data-f="add.t" maxlength="90">${esc(D.add.t)}</textarea>${ideaChips('add')}${imgPicker('add')}${metricPicker('add')}${langPicker('add')}
   <button class="btn block" style="margin-top:12px" data-act="addq">הוסף לסוף התור</button></div></details>`;
   h += `<h2>הסבב היומי</h2><div class="panel">
   <label class="f">שעת פתיחה כל יום</label><select class="field" data-f="set.sh">${Array.from({ length: 24 }, (_, i) => `<option value="${i}" ${i == s.sh ? 'selected' : ''}>${hh(i)}</option>`).join('')}</select>
@@ -402,7 +420,7 @@ function steps(ph) {
 }
 function roundView(r) {
   const ph = phase(r), picks = S.picks.filter(p => p.rid === r.id), adm = isAdmin();
-  let h = `<button class="back" data-act="go" data-v="home">→ כל הסבבים</button><div class="display topic">${esc(r.topic)}</div>${langBanner(r)}`;
+  let h = `<button class="back" data-act="go" data-v="home">→ כל הסבבים</button><div class="display topic">${esc(r.topic)}</div>${topicImgHtml(r)}${langBanner(r)}`;
   const legend = `<p class="legend">🎯 התאמה לנושא<br>✨ ${esc(m2of(r))}</p>`;
   if (ph === 'pick') {
     const mine = picks.find(p => p.uid === me), k = 'pk:' + r.id;
@@ -544,7 +562,7 @@ function startReveal(r) {
   const top = rows[0].pts;
   el.innerHTML = `<div class="rv-in" role="dialog" aria-label="חשיפת התוצאות">
     <div class="rv-top"><span class="rv-label">התוצאות נחשפות</span><button class="rv-skip" data-rv="skip">דלג ⏭</button></div>
-    <div class="display rv-topic">${esc(r.topic)}</div>
+    <div class="display rv-topic">${esc(r.topic)}</div>${topicImgHtml(r, 'rv')}
     <div class="rv-stage" aria-live="polite"></div>
     <button class="btn block rv-done" data-rv="skip" hidden>לכל התוצאות</button></div>`;
   el.hidden = false; document.body.classList.add('rv-open');

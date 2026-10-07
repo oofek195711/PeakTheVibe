@@ -10,7 +10,19 @@ function onField(e) {
 app.addEventListener('input', e => { onField(e); const k = e.target.dataset && e.target.dataset.search; if (k) liveSearch(k) });
 app.addEventListener('change', onField);
 const maxOrder = () => S.topics.reduce((m, t) => Math.max(m, t.order || 0), 0);
-const topicOf = k => ({ text: (D[k].t || '').trim().slice(0, 90), metric2: (D[k].m || '').trim().slice(0, 50) || DEFAULT_M.m, funny: !!D[k].f, lang: LANGS[D[k].lang] ? D[k].lang : 'any' });
+const IMG_TOPIC = 'שיר לתמונה 🖼️';
+const hasImg = k => !!(D[k] && (D[k].imgData || D[k].img));
+/* Uploads a newly chosen topic picture (if any) and returns the picture's id, or '' when the topic has none. */
+async function saveTopicImg(k) {
+  const d = D[k] || {};
+  if (d.imgData) {
+    const id = 'i' + now() + Math.random().toString(36).slice(2, 6);
+    await db.doc('images/' + id).set({ data: d.imgData, by: me, at: now() });
+    IMG[id] = d.imgData; d.img = id; d.imgData = '';
+  }
+  return d.img || '';
+}
+const topicOf = k => ({ text: (D[k].t || '').trim().slice(0, 90) || (hasImg(k) ? IMG_TOPIC : ''), metric2: (D[k].m || '').trim().slice(0, 50) || DEFAULT_M.m, funny: !!D[k].f, lang: LANGS[D[k].lang] ? D[k].lang : 'any' });
 
 app.addEventListener('click', async e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
@@ -23,6 +35,7 @@ app.addEventListener('click', async e => {
   else if (a === 'open') { view = { name: 'round', v }; render(); scrollTo(0, 0) }
   else if (a === 'prof') { view = { name: 'profile', v }; render(); scrollTo(0, 0) }
   else if (a === 'bm') { boardMode = v; render() }
+  else if (a === 'rmtimg') { const k = b.dataset.k; if (D[k]) { D[k].img = ''; D[k].imgData = ''; render() } }
   else if (a === 'lang') { const k = b.dataset.k; if (!D[k]) return; D[k].lang = v; render() }
   else if (a === 'idea') { const x = SUGGEST.find(i => i.t === v); const k = b.dataset.k; if (!x || !D[k]) return; Object.assign(D[k], { t: x.t, m: x.m, f: x.f }); render() }
   else if (a === 'dlcsv') { downloadCsv() }
@@ -43,22 +56,33 @@ app.addEventListener('click', async e => {
   else if (a === 'create') {
     const t = topicOf('new'); if (!t.text) { toast('צריך נושא'); return }
     const id = 'r' + now() + Math.random().toString(36).slice(2, 6), t0 = now(), pe = t0 + D.new.ph * 3600e3;
-    const ok = await write(() => db.doc('rounds/' + id).set({ topic: t.text, metric2: t.metric2, funny: t.funny, lang: t.lang, scale: 10, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + D.new.rh * 3600e3 }), 'הסבב נפתח');
+    const ok = await write(async () => { const img = await saveTopicImg('new'); await db.doc('rounds/' + id).set({ topic: t.text, metric2: t.metric2, funny: t.funny, lang: t.lang, ...(img ? { img } : {}), scale: 10, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + D.new.rh * 3600e3 }) }, 'הסבב נפתח');
     if (ok) { delete D.new; view = { name: 'round', v: id }; render(); scrollTo(0, 0) }
   }
   else if (a === 'submittopic') {
+    const isImg = D.sg.kind === 'img';
+    if (isImg && !hasImg('sg')) { toast('צריך לבחור תמונה'); return }
+    if (!isImg) { D.sg.img = ''; D.sg.imgData = '' }
     const t = topicOf('sg'); if (!t.text) { toast('צריך נושא'); return }
-    const ok = await write(() => db.collection('topics').add({ ...t, by: me, status: 'pending', createdAt: now() }), 'נשלח למנהל לאישור');
+    const ok = await write(async () => { const img = await saveTopicImg('sg'); await db.collection('topics').add({ ...t, ...(img ? { img } : {}), by: me, status: 'pending', createdAt: now() }) }, 'נשלח למנהל לאישור');
     if (ok) { delete D.sg; render() }
   }
   else if (a === 'approve') {
     const k = 'ed:' + v, t = topicOf(k); if (!t.text) { toast('צריך נושא'); return }
-    if (await write(() => db.doc('topics/' + v).update({ ...t, status: 'approved', order: maxOrder() + 1 }), 'נכנס לתור')) delete D[k];
+    if (await write(async () => { const img = await saveTopicImg(k); await db.doc('topics/' + v).update({ ...t, img, status: 'approved', order: maxOrder() + 1 }) }, 'נכנס לתור')) delete D[k];
   }
-  else if (a === 'reject') { await write(() => db.doc('topics/' + v).update({ status: 'rejected' })) }
+  else if (a === 'reject') {
+    const tp = S.topics.find(x => x.id === v);
+    await write(async () => {
+      await db.doc('topics/' + v).update({ status: 'rejected', img: '' });
+      if (tp && tp.img) await db.doc('images/' + tp.img).delete().catch(() => { });
+    });
+    delete D['ed:' + v];
+  }
+  else if (a === 'sgkind') { if (D.sg) { D.sg.kind = v; render() } }
   else if (a === 'addq') {
     const t = topicOf('add'); if (!t.text) { toast('צריך נושא'); return }
-    if (await write(() => db.collection('topics').add({ ...t, by: me, status: 'approved', order: maxOrder() + 1, createdAt: now() }), 'נוסף לתור')) { delete D.add; render() }
+    if (await write(async () => { const img = await saveTopicImg('add'); await db.collection('topics').add({ ...t, ...(img ? { img } : {}), by: me, status: 'approved', order: maxOrder() + 1, createdAt: now() }) }, 'נוסף לתור')) { delete D.add; render() }
   }
   else if (a === 'qmove') {
     const Q = queue(), i = Q.findIndex(t => t.id === v), j = i + (+b.dataset.d);
@@ -66,7 +90,14 @@ app.addEventListener('click', async e => {
     const ids = Q.map(t => t.id); [ids[i], ids[j]] = [ids[j], ids[i]];
     await write(() => { const w = db.batch(); ids.forEach((id, n) => w.update(db.doc('topics/' + id), { order: n + 1 })); return w.commit() });
   }
-  else if (a === 'qdel') { if (confirm('למחוק את הנושא מהתור?')) await write(() => db.doc('topics/' + v).delete()) }
+  else if (a === 'qdel') {
+    if (!confirm('למחוק את הנושא מהתור?')) return;
+    const tp = S.topics.find(x => x.id === v);
+    await write(async () => {
+      await db.doc('topics/' + v).delete();
+      if (tp && tp.img && !S.rounds.some(r => r.img === tp.img)) await db.doc('images/' + tp.img).delete().catch(() => { });
+    });
+  }
   else if (a === 'savesettings') {
     const s = D.set;
     await write(() => db.doc('config/settings').set({ startHour: s.sh, pickHours: s.ph, rateHours: s.rh }, { merge: true }), 'נשמר');
@@ -92,6 +123,7 @@ app.addEventListener('click', async e => {
   else if (a === 'nextnow') {
     const head = queue()[0];
     const t = head ? { topic: head.text, metric2: head.metric2 || DEFAULT_M.m, funny: head.funny !== false, lang: langOf(head) } : fallbackTopic('n' + now());
+    if (head && head.img) t.img = head.img;
     if (!confirm('לפתוח עכשיו סבב עם הנושא: "' + t.topic + '"?')) return;
     const id = 'r' + now() + Math.random().toString(36).slice(2, 6), t0 = now(), pe = t0 + S.settings.pickHours * 3600e3;
     const ok = await write(() => { const w = db.batch(); w.set(db.doc('rounds/' + id), { ...t, scale: 10, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 }); if (head) w.update(db.doc('topics/' + head.id), { status: 'used', usedOn: id }); return w.commit() }, 'הסבב נפתח');
@@ -295,6 +327,39 @@ app.addEventListener('keydown', e => {
   e.preventDefault(); const k = el.dataset.k, tok = el.dataset.slide;
   commitSlider(el, val);
   const again = app.querySelector('.slider[data-slide="' + tok + '"][data-k="' + k + '"]'); if (again) again.focus();
+});
+
+/* Topic picture: keep proportions, shrink so the long side is at most 1000px, and compress until it fits in one document. */
+function shrinkTopicImg(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      let side = 1000, out = '';
+      for (let i = 0; i < 4; i++) {
+        const k = Math.min(1, side / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+        let q = 0.82; out = c.toDataURL('image/jpeg', q);
+        while (out.length > 350000 && q > 0.45) { q -= 0.12; out = c.toDataURL('image/jpeg', q) }
+        if (out.length <= 350000) break;
+        side = Math.round(side * 0.75);
+      }
+      URL.revokeObjectURL(url);
+      resolve(out);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img')) };
+    img.src = url;
+  });
+}
+app.addEventListener('change', async e => {
+  const inp = e.target, k = inp.dataset && inp.dataset.timg; if (!k || !inp.files || !inp.files[0] || !D[k]) return;
+  try {
+    const data = await shrinkTopicImg(inp.files[0]);
+    if (!safeImg(data)) throw new Error('bad');
+    D[k].imgData = data; D[k].img = '';
+    render();
+  } catch (_) { toast('לא הצלחתי לטעון את התמונה. נסו תמונה אחרת.') }
 });
 
 /* ---------- boot ---------- */

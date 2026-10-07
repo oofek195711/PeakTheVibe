@@ -378,3 +378,13 @@ button.qrow.pickme{width:100%;border:0;text-align:right;cursor:pointer}
 .fbtext{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45;margin-bottom:4px}
 .fbreply{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--chip);font-size:14px;white-space:pre-wrap}
 .remind{margin-top:12px}
+
+/* ---------- v1.3.0: picture topics ---------- */
+.timg{display:block;margin:0 0 14px;border-radius:18px;overflow:hidden;background:var(--chip);text-align:center}
+.timg:empty{display:none}
+.timg img{display:block;width:100%;max-height:62vh;object-fit:contain}
+.timg .muted{display:block;padding:18px;font-size:13px}
+.timg.sm{margin-bottom:8px}.timg.sm img{max-height:220px}
+.timg.thumb{width:100%;max-width:230px;margin:0 0 8px;border-radius:12px}
+.timg.thumb img{max-height:120px;object-fit:cover}
+.timg.rv{max-width:270px;margin:-6px auto 18px}.timg.rv img{max-height:180px}
