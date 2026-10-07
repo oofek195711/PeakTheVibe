@@ -35,6 +35,26 @@ app.addEventListener('click', async e => {
   else if (a === 'open') { view = { name: 'round', v }; render(); scrollTo(0, 0) }
   else if (a === 'prof') { view = { name: 'profile', v }; render(); scrollTo(0, 0) }
   else if (a === 'bm') { boardMode = v; render() }
+  else if (a === 'delround') {
+    const r = S.rounds.find(x => x.id === view.v); if (!r) return;
+    const picks = S.picks.filter(p => p.rid === r.id), rates = S.ratings.filter(x => x.rid === r.id);
+    if (!confirm(`למחוק את הסבב "${r.topic}"?\n\nיימחקו גם ${picks.length} שירים ו-${rates.length} דירוגים, והניקוד מהסבב הזה ייעלם מהמובילים.\n\nאי אפשר לבטל.`)) return;
+    const topic = S.topics.find(t => t.usedOn === r.id);
+    const back = !!topic && confirm('הנושא של הסבב הגיע מהתור.\n\nלהחזיר אותו לראש התור, כדי שיעלה שוב?\n\nאישור = להחזיר לתור\nביטול = למחוק גם את הנושא');
+    const isDaily = /^d\d{4}-\d{2}-\d{2}$/.test(r.id);
+    const refs = [db.doc('rounds/' + r.id)];
+    picks.forEach(p => refs.push(db.doc('picks/' + r.id + '__' + p.uid)));
+    rates.forEach(x => refs.push(db.doc('ratings/' + r.id + '__' + x.uid)));
+    const F = firebase.firestore.FieldValue;
+    const ok = await write(async () => {
+      // first make sure nobody's phone reopens today's automatic round, then delete
+      if (isDaily) await db.doc('config/settings').set({ skipDays: F.arrayUnion(r.id) }, { merge: true });
+      for (let i = 0; i < refs.length; i += 400) { const w = db.batch(); refs.slice(i, i + 400).forEach(d => w.delete(d)); await w.commit() }
+      if (topic && back) await db.doc('topics/' + topic.id).update({ status: 'approved', order: 0, usedOn: '' });
+      else if (r.img) await db.doc('images/' + r.img).delete().catch(() => { });
+    }, back ? 'הסבב נמחק, והנושא חזר לראש התור' : 'הסבב נמחק');
+    if (ok) { stopPreview(); view = { name: 'home', v: null }; render(); scrollTo(0, 0) }
+  }
   else if (a === 'rmtimg') { const k = b.dataset.k; if (D[k]) { D[k].img = ''; D[k].imgData = ''; render() } }
   else if (a === 'lang') { const k = b.dataset.k; if (!D[k]) return; D[k].lang = v; render() }
   else if (a === 'idea') { const x = SUGGEST.find(i => i.t === v); const k = b.dataset.k; if (!x || !D[k]) return; Object.assign(D[k], { t: x.t, m: x.m, f: x.f }); render() }

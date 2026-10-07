@@ -473,7 +473,7 @@ function roundView(r) {
   }
   else {
     const rd = roundData(r), rows = rd.rows;
-    if (!rows.length) return h + `<p class="muted">אף אחד לא בחר שיר בסבב הזה.</p>`;
+    if (!rows.length) return h + `<p class="muted">אף אחד לא בחר שיר בסבב הזה.</p>` + (adm ? `<div class="row-actions"><button class="btn ghost block danger" data-act="delround">🗑️ מחק את הסבב</button></div>` : '');
     h += `<button class="btn ghost block" data-act="replay" style="margin-bottom:14px">🎬 לצפות בחשיפה שוב</button>`;
     maybeReveal(r);
     const rated = rows.filter(x => x.n && x.complete);
@@ -487,6 +487,7 @@ function roundView(r) {
     h += `<h2>בונוס ניחושים</h2>` + (b.length ? b.map(([u, c]) => `<div class="qrow"><div class="qt">${esc(nameOf(u))}</div><b>+${c}</b></div>`).join('') : `<p class="muted">אף אחד לא ניחש נכון הפעם.</p>`);
     h += `<p class="hint" style="margin-top:12px">${scaleOf(r) === 10 ? 'ניקוד שיר: הממוצע של 🎯 ו-✨ מכל המדרגים, מ-1 עד 10.' : 'ניקוד שיר: ממוצע (🎯 + ✨) מכל המדרגים, עד 10.'} כל ניחוש נכון: נקודה נוספת.</p>`;
   }
+  if (adm) h += `<div class="row-actions"><button class="btn ghost block danger" data-act="delround">🗑️ מחק את הסבב</button></div>`;
   return h;
 }
 function boardView() {

@@ -33,6 +33,7 @@ async function ensureToday() {
   if (now() < st) return;
   const id = dayId(today);
   if (S.rounds.some(r => r.id === id) || attempted[id]) return;
+  if ((S.settings.skipDays || []).includes(id)) return; // the admin deleted today's round: don't reopen it
   attempted[id] = true;
   const head = queue()[0];
   let topic, metric2, funny, tref = null;
