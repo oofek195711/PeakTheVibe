@@ -212,17 +212,20 @@ app.addEventListener('click', async e => {
   else if (a === 'replay') { const r = S.rounds.find(x => x.id === view.v); if (r) { primeRevealAudio(); startReveal(r) } }
   else if (a === 'rate') { const d = rateDraft[view.v]; const u = uidFromTok(view.v, b.dataset.u); if (!u) return; d.scores[u] = { ...(d.scores[u] || {}), [b.dataset.k]: +b.dataset.n }; render() }
   else if (a === 'guess') { const d = rateDraft[view.v]; const u = uidFromTok(view.v, b.dataset.u); if (!u) return; d.guesses[u] = d.guesses[u] === b.dataset.g ? null : b.dataset.g; if (!d.guesses[u]) delete d.guesses[u]; render() }
+  else if (a === 'bet') { const d = rateDraft[view.v]; const u = uidFromTok(view.v, b.dataset.u); if (!d || !u) return; d.bet = d.bet === u ? '' : u; render() }
+  else if (a === 'weekly') { const pw = prevWeekRange(), s = weekSummary(pw.from, pw.to); if (s) { primeRevealAudio(); startWeekly(s) } }
   else if (a === 'saverate' || a === 'lockrate') {
     const r = S.rounds.find(x => x.id === view.v); if (!r || phase(r) !== 'rate') { toast('זמן הדירוג נגמר'); render(); return }
     const lock = a === 'lockrate';
-    if (lock && !confirm('לנעול את הדירוג והניחושים? אחרי הנעילה אי אפשר לשנות.')) return;
+    if (lock && !confirm('לנעול את הדירוג, הניחושים וההימור? אחרי הנעילה אי אפשר לשנות.')) return;
     const d = rateDraft[r.id], scores = {}, guesses = {};
+    const bet = d.bet && S.picks.some(p => p.rid === r.id && p.uid === d.bet && p.uid !== me) ? d.bet : '';
     S.picks.filter(p => p.rid === r.id && p.uid !== me).forEach(p => {
       if (d.scores[p.uid]) scores[p.uid] = { fit: d.scores[p.uid].fit || 0, fun: d.scores[p.uid].fun || 0 };
       if (d.guesses[p.uid]) guesses[p.uid] = d.guesses[p.uid];
     });
-    rateDraft[r.id] = { scores: JSON.parse(JSON.stringify(scores)), guesses: { ...guesses } };
-    const okR = await write(() => db.doc('ratings/' + r.id + '__' + me).set({ rid: r.id, uid: me, scores, guesses, locked: lock, at: now() }), lock ? 'הדירוג ננעל 🔒' : 'נשמר');
+    rateDraft[r.id] = { scores: JSON.parse(JSON.stringify(scores)), guesses: { ...guesses }, bet };
+    const okR = await write(() => db.doc('ratings/' + r.id + '__' + me).set({ rid: r.id, uid: me, scores, guesses, bet, locked: lock, at: now() }), lock ? 'הדירוג ננעל 🔒' : 'נשמר');
     if (okR && lock) { stopPreview(); view = { name: 'home', v: null }; render(); scrollTo(0, 0) }
   }
   else if (a === 'endpick') { const r = S.rounds.find(x => x.id === view.v); if (!r) return;
@@ -261,7 +264,10 @@ app.addEventListener('keydown', e => {
   if (k && e.key === 'Enter') { e.preventDefault(); e.target.blur(); runSongSearch(k) }
 });
 /* Reveal layer: skip / finish */
-document.getElementById('reveal').addEventListener('click', e => { if (e.target.closest('[data-rv="skip"]')) closeReveal() });
+document.getElementById('reveal').addEventListener('click', e => {
+  if (e.target.closest('[data-rv="wkshare"]')) { if (weeklyShown) window.open('https://wa.me/?text=' + encodeURIComponent(weeklyText(weeklyShown)), '_blank', 'noopener') }
+  else if (e.target.closest('[data-rv="skip"]')) closeReveal();
+});
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && revealOn) closeReveal() });
 
 /* Profile photo: crop to a square, shrink to 128px JPEG (a few KB) and store it on the player record. */

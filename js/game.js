@@ -7,7 +7,8 @@ function roundData(r) {
   const sc = scaleOf(r);
   const picks = S.picks.filter(p => p.rid === r.id);
   const by = {}, gs = {};
-  S.ratings.filter(x => x.rid === r.id).forEach(x => { by[x.uid] = x.scores || {}; gs[x.uid] = x.guesses || {} });
+  const bt = {};
+  S.ratings.filter(x => x.rid === r.id).forEach(x => { by[x.uid] = x.scores || {}; gs[x.uid] = x.guesses || {}; if (x.bet) bt[x.uid] = x.bet });
   const pickers = new Set(picks.map(p => p.uid));
   const keyMap = {};
   picks.forEach(p => songKeys(p).forEach(k => (keyMap[k] = keyMap[k] || new Set()).add(p.uid)));
@@ -34,12 +35,22 @@ function roundData(r) {
     for (const [pu, v] of Object.entries(g)) { if (pu === gu || !pickers.has(pu) || !v) continue; m++; if (v === pu) c++ }
     if (c) bonus[gu] = c; if (m) made[gu] = m;
   }
-  return { rows, bonus, made, funny: funnyOf(r), scale: sc };
+  // bet on the winner: +1 to whoever bet on a song that finished first (not their own)
+  const topPts = rows.length && rows[0].pts > 0 ? rows[0].pts : null;
+  const winners = new Set(rows.filter(x => topPts !== null && x.pts === topPts).map(x => x.uid));
+  const betBonus = {}, betMade = {}, betOn = {};
+  for (const [bu, target] of Object.entries(bt)) {
+    if (target === bu || !pickers.has(target)) continue;
+    betMade[bu] = 1; betOn[target] = (betOn[target] || 0) + 1;
+    if (winners.has(target)) betBonus[bu] = 1;
+  }
+  rows.forEach(x => { x.bets = betOn[x.uid] || 0 });
+  return { rows, bonus, made, betBonus, betMade, funny: funnyOf(r), scale: sc };
 }
 const doneRounds = () => S.rounds.filter(r => phase(r) === 'done');
 function aggregate(rounds) {
   const P = {};
-  const g = u => P[u] || (P[u] = { uid: u, pts: 0, bonus: 0, wins: 0, played: 0, fitSum: 0, fitN: 0, funSum: 0, funN: 0, gMade: 0, gOnRight: 0, gOnTot: 0, hive: 0 });
+  const g = u => P[u] || (P[u] = { uid: u, pts: 0, bonus: 0, wins: 0, played: 0, fitSum: 0, fitN: 0, funSum: 0, funN: 0, gMade: 0, gOnRight: 0, gOnTot: 0, hive: 0, bet: 0, betMade: 0 });
   let flop = null;
   rounds.forEach(r => {
     const d = roundData(r);
@@ -53,8 +64,10 @@ function aggregate(rounds) {
     });
     Object.entries(d.bonus).forEach(([u, c]) => g(u).bonus += c);
     Object.entries(d.made).forEach(([u, c]) => g(u).gMade += c);
+    Object.keys(d.betBonus).forEach(u => g(u).bet++);
+    Object.keys(d.betMade).forEach(u => g(u).betMade++);
   });
-  Object.values(P).forEach(t => { t.total = r1(t.pts + t.bonus); t.pts = r1(t.pts) });
+  Object.values(P).forEach(t => { t.total = r1(t.pts + t.bonus + t.bet); t.pts = r1(t.pts) });
   return { P, flop, count: rounds.length };
 }
 function maxBy(arr, f, cond) {
@@ -120,6 +133,7 @@ function buildLog(r) {
     results: d.rows.map((x, i) => ({ rank: i + 1, uid: x.uid, nick: nameOf(x.uid), title: x.title, artist: x.artist || '', url: x.url || '', artwork: x.artwork || '', source: x.source || 'manual', locked: !!x.locked,
       fit: r1(x.fit), fun: r1(x.fun), raters: x.n, pts: x.pts, complete: x.complete, guessedRight: x.gRight, guessedTotal: x.gTot, hive: x.hive })),
     bonus: Object.entries(d.bonus).map(([u, c]) => ({ uid: u, nick: nameOf(u), bonus: c })),
+    betWinners: Object.keys(d.betBonus).map(u => ({ uid: u, nick: nameOf(u) })),
     ratings: S.ratings.filter(x => x.rid === r.id).map(x => ({ rater: nameOf(x.uid), raterUid: x.uid, locked: !!x.locked,
       scores: Object.entries(x.scores || {}).map(([u, v]) => ({ song: nameOf(u), fit: v.fit || 0, fun: v.fun || 0 })),
       guesses: Object.entries(x.guesses || {}).map(([u, g]) => ({ song: nameOf(u), guess: nameOf(g), right: u === g })) }))
@@ -164,4 +178,34 @@ function reminderText(r) {
   if (ph === 'rate') lines.push('', 'זוכרים: מי שבחר שיר ולא דירג את כולם מקבל 0 🙃');
   lines.push('', '👇 ' + GAME_URL);
   return lines.join('\n');
+}
+
+/* ---------- weekly summary ----------
+   A week runs Sunday 00:00 to the next Sunday 00:00; a round belongs to the week its results were revealed in. */
+function prevWeekRange() {
+  const to = weekStart(), d = new Date(to); d.setDate(d.getDate() - 7);
+  return { from: d.getTime(), to };
+}
+function weekSummary(from, to) {
+  const rs = doneRounds().filter(r => r.rateEnds >= from && r.rateEnds < to);
+  if (!rs.length) return null;
+  const ag = aggregate(rs);
+  const rows = Object.values(ag.P).filter(t => t.played || t.total > 0).sort((a, b) => b.total - a.total || b.wins - a.wins);
+  if (!rows.length) return null;
+  let best = null, songs = 0;
+  rs.forEach(r => roundData(r).rows.forEach(x => { songs++; if (x.complete && x.n && (!best || x.pts > best.pts)) best = { ...x, topic: r.topic } }));
+  const top = (f) => { const m = Math.max(0, ...rows.map(f)); return m > 0 ? { n: m, u: rows.filter(t => f(t) === m).map(t => t.uid) } : null };
+  return { from, to, rounds: rs.length, songs, rows, best, flop: ag.flop && best && ag.flop.pts < best.pts ? ag.flop : null, guesser: top(t => t.bonus), bettor: top(t => t.bet) };
+}
+const dm = t => new Date(t).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+const weekLabel = s => dm(s.from) + ' עד ' + dm(s.to - 864e5 / 2);
+function weeklyText(s) {
+  const medals = ['🥇', '🥈', '🥉'];
+  const L = ['🎧 *PeakTheVibe: סיכום השבוע*', weekLabel(s) + ', ' + s.rounds + ' סבבים, ' + s.songs + ' שירים', ''];
+  s.rows.slice(0, 3).forEach((t, i) => L.push(`${medals[i]} ${nameOf(t.uid)}: ${t.total} נק׳`));
+  if (s.best) L.push('', `🎵 השיר של השבוע: ${s.best.title}${s.best.artist ? ' / ' + s.best.artist : ''} (${nameOf(s.best.uid)}, ${s.best.pts} נק׳)`);
+  if (s.flop) L.push(`💀 Flop: ${s.flop.title} (${nameOf(s.flop.uid)}, ${s.flop.pts} נק׳)`);
+  if (s.guesser) L.push(`🔮 הכי הרבה ניחושים נכונים: ${s.guesser.u.map(nameOf).join(', ')} (${s.guesser.n})`);
+  L.push('', '👇 ' + GAME_URL);
+  return L.join('\n');
 }

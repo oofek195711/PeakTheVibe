@@ -389,3 +389,15 @@ button.qrow.pickme{width:100%;border:0;text-align:right;cursor:pointer}
 .timg.thumb img{max-height:120px;object-fit:cover}
 .timg.rv{max-width:270px;margin:-6px auto 18px}.timg.rv img{max-height:180px}
 .btn.danger{color:var(--warn);box-shadow:inset 0 0 0 2px var(--warn)}
+
+/* ---------- v1.4.2: bet on the winner + weekly summary ---------- */
+.betbtn{display:block;width:100%;margin-top:14px;min-height:46px;border-radius:14px;border:2px dashed var(--line);background:transparent;font-weight:800;font-size:15px;color:var(--ink)}
+.betbtn.on{border-style:solid;border-color:#E0A100;background:#FFC93C;color:#2A1F00}
+.betbtn:disabled{opacity:.6}.betbtn.on:disabled{opacity:1}
+.wk-range{text-align:center;color:var(--muted);font-size:14px;margin:0 0 18px}
+.wk-av .av{width:64px;height:64px;font-size:26px}
+.rv-card.wk-pl{grid-template-columns:auto auto 1fr auto}
+.wk-extra{display:grid;gap:12px;margin-top:12px}
+.wk-lines{background:var(--surface);border-radius:18px;padding:12px 16px}
+.wk-lines p{margin:4px 0;font-size:15px}
+.wk-end{margin-top:18px}

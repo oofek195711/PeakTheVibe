@@ -146,8 +146,8 @@ async function bootFirebase() {
     const err = e => { fatal = 'אין גישה לנתונים (' + (e && e.code || '') + '). בדוק את ה-Rules ב-Firebase.'; render() };
     db.doc('links/' + authUid).onSnapshot(s => applyLink(s.exists ? s.data() : null), () => applyLink(null));
     db.collection('rounds').onSnapshot(s => { S.rounds = s.docs.map(x => ({ id: x.id, ...x.data() })); S.loaded.rounds = true; lastSig = S.rounds.map(r => r.id + phase(r)).join(); schedule() }, err);
-    db.collection('picks').onSnapshot(s => { S.picks = s.docs.map(x => x.data()); schedule() }, err);
-    db.collection('ratings').onSnapshot(s => { S.ratings = s.docs.map(x => x.data()); schedule() }, err);
+    db.collection('picks').onSnapshot(s => { S.picks = s.docs.map(x => x.data()); S.loaded.picks = true; schedule() }, err);
+    db.collection('ratings').onSnapshot(s => { S.ratings = s.docs.map(x => x.data()); S.loaded.ratings = true; schedule() }, err);
     db.collection('players').onSnapshot(s => { const m = {}; s.docs.forEach(x => m[x.id] = x.data()); S.players = m; S.loaded.players = true; schedule() }, err);
     db.collection('topics').onSnapshot(s => { S.topics = s.docs.map(x => ({ id: x.id, ...x.data() })); S.loaded.topics = true; schedule() }, err);
     db.doc('config/admin').onSnapshot(s => {

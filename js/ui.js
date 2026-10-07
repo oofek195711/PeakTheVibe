@@ -102,6 +102,7 @@ function render() {
   else body = homeView();
   const y = window.scrollY || 0;
   app.innerHTML = body + FOOT() + (rateBar ? '' : nav());
+  if (view.name === 'home') maybeWeekly();
   app.querySelectorAll('details[data-k]').forEach(d => { if (openDetails.has(d.dataset.k)) d.open = true });
   if (window.scrollY !== y) window.scrollTo(0, y);
 }
@@ -121,6 +122,8 @@ function helpView() {
   ${item('⭐', 'מדרגים', `אחרי זמן הבחירה יש ${st.rateHours} שעות לדרג. השירים מוצגים בלי שמות, וכל שיר מקבל ציון מ-1 עד 10 (גוררים את המחוון) בשני מדדים: 🎯 כמה מתאים לנושא, ו-✨ מדד שני שמשתנה בכל נושא. את השיר שלכם לא מדרגים.`)}
   <div class="hitem warn">${'<span class="hic">⚠️</span>'}<div><b>החוק הכי חשוב</b><p>בחרתם שיר? חייבים לדרג את כל השירים האחרים. אחרת השיר שלכם מקבל 0 בסבב.</p></div></div>
   ${item('🕵️', 'מנחשים מי בחר', 'ליד כל שיר בוחרים מי לדעתכם בחר אותו. כל ניחוש נכון שווה נקודת בונוס.')}
+  ${item('🎰', 'מהמרים על המנצח', 'בשלב הדירוג אפשר לסמן שיר אחד שלדעתכם ייקח את המקום הראשון (לא את שלכם). צדקתם? עוד נקודת בונוס.')}
+  ${item('📅', 'סיכום שבועי', 'כל יום ראשון נפתח סיכום של השבוע שעבר: המובילים, השיר של השבוע וה-Flop. אפשר לצפות בו שוב במסך 🏆 מובילים.')}
   ${item('🏆', 'ניקוד ותארים', 'כל שיר מקבל את הממוצע של שני המדדים מכל המדרגים, עד 10 נקודות, ועוד בונוסים מניחושים. בלשונית 🏆 מובילים יש לוח שבועי (מיום ראשון), לוח של כל הזמנים, תארים מצחיקים ופרופיל לכל שחקן.')}
   ${item('💡', 'יש לכם רעיון לנושא?', 'כפתור "הצע נושא" בתחתית המסך. אפשר להציע משפט, או תמונה שכולם יבחרו לה שיר. אם המנהל יאשר, הוא יעלה באחד הימים, בלי שאף אחד יידע שזה שלכם.')}
   ${item('💬', 'משהו לא עובד?', 'בתחתית כל מסך יש "שלחו משוב". כתבו מה קרה או מה הייתם רוצים, וזה מגיע ישר למנהל.')}
@@ -439,9 +442,10 @@ function roundView(r) {
   else if (ph === 'rate') {
     const order = picks.slice().sort((a, b) => hash(r.id + a.uid) - hash(r.id + b.uid));
     const sd = S.ratings.find(x => x.rid === r.id && x.uid === me) || {};
-    const saved = { scores: sd.scores || {}, guesses: sd.guesses || {} };
+    const saved = { scores: sd.scores || {}, guesses: sd.guesses || {}, bet: sd.bet || '' };
     if (!rateDraft[r.id]) rateDraft[r.id] = JSON.parse(JSON.stringify(saved));
     const d = rateDraft[r.id];
+    if (d.bet === undefined) d.bet = saved.bet;
     const others = order.filter(p => p.uid !== me);
     const cands = picks.map(p => p.uid).filter(u => u !== me).sort((a, b) => nameOf(a).localeCompare(nameOf(b), 'he'));
     const doneN = others.filter(p => d.scores[p.uid] && d.scores[p.uid].fit && d.scores[p.uid].fun).length;
@@ -460,9 +464,10 @@ function roundView(r) {
       const dots = k => [1, 2, 3, 4, 5].map(n => `<button class="${v[k] === n ? 'on' : ''}" data-act="rate" data-u="${tok}" data-k="${k}" data-n="${n}" aria-label="${n}" ${dis}>${n}</button>`).join('');
       const gs = cands.length > 1 ? `<div class="scale"><span>🕵️ מי בחר את השיר? (בונוס)</span><div class="chips guess">${cands.map(u => `<button class="${d.guesses[p.uid] === u ? 'on' : ''}" data-act="guess" data-u="${tok}" data-g="${esc(u)}" ${dis}>${withAv(u, 'xxs')}</button>`).join('')}</div></div>` : '';
       const ok = v.fit && v.fun;
+      const bet = others.length >= 2 ? `<button class="betbtn ${d.bet === p.uid ? 'on' : ''}" data-act="bet" data-u="${tok}" ${dis}>${d.bet === p.uid ? '🎰 הימרת שהשיר הזה ינצח' : '🎰 להמר שהשיר הזה ינצח (+1)'}</button>` : '';
       return songCard(p, { tag: ok ? '✓ דורג' : '', body: `<div class="rates">
         <div class="scale"><span>🎯 כמה מתאים לנושא</span>${ten ? slider('fit') : `<div class="dots">${dots('fit')}</div>`}</div>
-        <div class="scale"><span>✨ ${esc(m2of(r))}</span>${ten ? slider('fun', 'fun') : `<div class="dots fun">${dots('fun')}</div>`}</div>${gs}</div>` });
+        <div class="scale"><span>✨ ${esc(m2of(r))}</span>${ten ? slider('fun', 'fun') : `<div class="dots fun">${dots('fun')}</div>`}</div>${gs}${bet}</div>` });
     }).join('') + '</div>';
     if (adm) {
       const st = roundStatus(r);
@@ -482,10 +487,12 @@ function roundView(r) {
     const top = rows[0].pts;
     h += `<div class="playlist">${playlistHead(rows)}</div>${legend}`;
     h += rows.map((x, i) => `<div class="res ${x.pts > 0 && x.pts === top ? 'win' : ''}"><div class="rk">${i + 1}</div>${artHtml(x, 'sm')}<div><button class="who linkbtn" data-act="prof" data-v="${esc(x.uid)}">${withAv(x.uid, 'xs')}${x.uid === me ? ' (את/ה)' : ''}</button><div class="sg">${esc(x.title)}${x.artist ? ' / ' + esc(x.artist) : ''}</div></div><div class="pts">${x.pts}</div>
-    <div class="sub">${x.complete ? `<span>🎯 ${x.fit.toFixed(1)}</span><span>✨ ${x.fun.toFixed(1)}</span>` : '<span style="color:var(--warn);font-weight:700">לא סיים/ה לדרג, 0 נקודות</span>'}${x.gTot ? `<span>🕵️ ${x.gRight}/${x.gTot} ניחשו</span>` : ''}${x.hive ? '<span>🐑 Hive Mind</span>' : ''}</div>${linksHtml(x)}</div>`).join('');
+    <div class="sub">${x.complete ? `<span>🎯 ${x.fit.toFixed(1)}</span><span>✨ ${x.fun.toFixed(1)}</span>` : '<span style="color:var(--warn);font-weight:700">לא סיים/ה לדרג, 0 נקודות</span>'}${x.gTot ? `<span>🕵️ ${x.gRight}/${x.gTot} ניחשו</span>` : ''}${x.bets ? `<span>🎰 ${x.bets} הימרו עליו</span>` : ''}${x.hive ? '<span>🐑 Hive Mind</span>' : ''}</div>${linksHtml(x)}</div>`).join('');
     const b = Object.entries(rd.bonus).sort((a, c) => c[1] - a[1]);
     h += `<h2>בונוס ניחושים</h2>` + (b.length ? b.map(([u, c]) => `<div class="qrow"><div class="qt">${esc(nameOf(u))}</div><b>+${c}</b></div>`).join('') : `<p class="muted">אף אחד לא ניחש נכון הפעם.</p>`);
-    h += `<p class="hint" style="margin-top:12px">${scaleOf(r) === 10 ? 'ניקוד שיר: הממוצע של 🎯 ו-✨ מכל המדרגים, מ-1 עד 10.' : 'ניקוד שיר: ממוצע (🎯 + ✨) מכל המדרגים, עד 10.'} כל ניחוש נכון: נקודה נוספת.</p>`;
+    if (Object.keys(rd.betMade).length) { const bw = Object.keys(rd.betBonus);
+      h += `<h2>הימור על המנצח</h2>` + (bw.length ? bw.map(u => `<div class="qrow"><div class="qt">${esc(nameOf(u))}</div><b>+1</b></div>`).join('') : `<p class="muted">אף אחד לא הימר על השיר המנצח.</p>`) }
+    h += `<p class="hint" style="margin-top:12px">${scaleOf(r) === 10 ? 'ניקוד שיר: הממוצע של 🎯 ו-✨ מכל המדרגים, מ-1 עד 10.' : 'ניקוד שיר: ממוצע (🎯 + ✨) מכל המדרגים, עד 10.'} כל ניחוש נכון: נקודה נוספת. הימור נכון על המנצח: נקודה נוספת.</p>`;
   }
   if (adm) h += `<div class="row-actions"><button class="btn ghost block danger" data-act="delround">🗑️ מחק את הסבב</button></div>`;
   return h;
@@ -495,10 +502,11 @@ function boardView() {
   const ag = aggregate(rs), rows = Object.values(ag.P).sort((a, b) => b.total - a.total || b.wins - a.wins);
   let h = `<div class="brand"><span class="display">🏆 מובילים</span></div>
   <div class="seg"><button class="${boardMode === 'week' ? 'on' : ''}" data-act="bm" data-v="week">השבוע</button><button class="${boardMode === 'all' ? 'on' : ''}" data-act="bm" data-v="all">כל הזמנים</button></div>`;
+  { const pw = prevWeekRange(); if (weekSummary(pw.from, pw.to)) h += `<button class="btn ghost block" data-act="weekly" style="margin-bottom:14px">🎬 סיכום השבוע שעבר</button>` }
   if (rows.length) {
     const lead = rows[0];
     h += `<div class="hero"><small>${boardMode === 'week' ? 'מוביל/ה השבוע' : 'מוביל/ה בכל הזמנים'}, ${ag.count} סבבים</small><span class="display">${esc(nameOf(lead.uid))}</span><small>${lead.total} נקודות, ${lead.wins} ניצחונות</small></div>`;
-    h += rows.map((x, i) => `<button class="lb" data-act="prof" data-v="${esc(x.uid)}"><span class="rk">${i + 1}</span><span class="nm">${withAv(x.uid, 'sm')}${x.uid === me ? ' (את/ה)' : ''}<small>${x.played} סבבים, ${x.wins} ניצחונות${x.bonus ? ', +' + x.bonus + ' מניחושים' : ''}</small></span><span class="p">${x.total}</span></button>`).join('');
+    h += rows.map((x, i) => `<button class="lb" data-act="prof" data-v="${esc(x.uid)}"><span class="rk">${i + 1}</span><span class="nm">${withAv(x.uid, 'sm')}${x.uid === me ? ' (את/ה)' : ''}<small>${x.played} סבבים, ${x.wins} ניצחונות${x.bonus ? ', +' + x.bonus + ' מניחושים' : ''}${x.bet ? ', +' + x.bet + ' מהימורים' : ''}</small></span><span class="p">${x.total}</span></button>`).join('');
   } else h += `<div class="empty" style="padding:24px 8px"><div class="display" style="font-size:36px">${boardMode === 'week' ? 'עוד אין תוצאות השבוע' : 'עוד אין תוצאות'}</div><p class="muted">הלוח מתמלא כשסבב מגיע לשלב התוצאות.</p></div>`;
   const T = titles().filter(t => t.u.length);
   h += `<h2>תארים</h2>` + (T.length ? `<div class="titles">${T.map(t => `<div class="ttl"><span class="ic">${t.ic}</span><div><b>${t.n}</b><small>${esc(t.d)}</small><div class="holders">${t.u.map(u => esc(nameOf(u))).join(', ')}</div></div></div>`).join('')}</div>` : `<p class="muted">התארים יחולקו אחרי הסבבים הראשונים.</p>`);
@@ -524,6 +532,7 @@ function profileView(uid) {
     ${stat('🎵', 'שירים שנבחרו', songs.length)}
     ${stat('🔥', 'סבבים ברצף', streak(uid))}
     ${stat('🔮', 'ניחושים נכונים', ag.gMade ? ag.bonus + '/' + ag.gMade : '–')}
+    ${stat('🎰', 'הימורים נכונים', ag.betMade ? ag.bet + '/' + ag.betMade : '–')}
     ${stat('🕵️', 'ניחשו אותו/ה', ag.gOnTot ? Math.round(100 * ag.gOnRight / ag.gOnTot) + '%' : '–')}
   </div>`;
   if (recent.length) h += `<h2>בחירות אחרונות</h2>` + recent.map(({ p, r }) => {
@@ -601,4 +610,52 @@ function confetti(host) {
   }
   host.appendChild(box);
   revealTimers.push(setTimeout(() => box.remove(), 4200));
+}
+
+
+/* ---------- weekly summary show ----------
+   Opens by itself once per device on the first visit after the week ended (from Sunday),
+   and can be replayed from the leaders screen. Reuses the reveal layer. */
+let weeklyShown = null;
+function maybeWeekly() {
+  if (revealOn || !S.loaded.picks || !S.loaded.ratings || !S.players[me]) return;
+  const { from, to } = prevWeekRange(), key = 'ptv_wk_' + from;
+  try { if (localStorage.getItem(key) === '1') return } catch (_) { return }
+  const sum = weekSummary(from, to); if (!sum) return;
+  try { localStorage.setItem(key, '1') } catch (_) { }
+  setTimeout(() => startWeekly(sum), 0);
+}
+function startWeekly(s) {
+  const el = document.getElementById('reveal'); if (!el || !s) return;
+  closeReveal(); revealOn = 'week:' + s.from; weeklyShown = s;
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.innerHTML = `<div class="rv-in" role="dialog" aria-label="סיכום שבועי">
+    <div class="rv-top"><span class="rv-label">סיכום שבועי</span><button class="rv-skip" data-rv="skip">סגור ✕</button></div>
+    <div class="display rv-topic" style="margin-bottom:6px">השבוע שהיה</div>
+    <p class="wk-range">${weekLabel(s)} · ${s.rounds} סבבים · ${s.songs} שירים</p>
+    <div class="rv-stage" aria-live="polite"></div><div class="wk-extra"></div>
+    <div class="wk-end" hidden><button class="btn block" data-rv="wkshare">📣 שתף את הסיכום בוואטסאפ</button><button class="btn ghost block" data-rv="skip" style="margin-top:8px">סגור</button></div></div>`;
+  el.hidden = false; document.body.classList.add('rv-open');
+  const stage = el.querySelector('.rv-stage'), extra = el.querySelector('.wk-extra');
+  const medal = ['🥇', '🥈', '🥉'], gap = reduce ? 600 : 1900;
+  const podium = s.rows.slice(0, 3).map((t, i) => ({ t, i })).reverse();
+  let at = reduce ? 300 : 900;
+  const later = fn => { revealTimers.push(setTimeout(fn, at)); at += gap };
+  podium.forEach(({ t, i }) => later(() => {
+    const card = document.createElement('div'); card.className = 'rv-card wk-pl' + (i === 0 ? ' win' : '');
+    card.innerHTML = `<div class="rv-medal">${medal[i]}</div><span class="wk-av">${avatarHtml(t.uid)}</span>
+      <div class="rv-info"><div class="rv-place">${i === 0 ? 'אלוף/ת השבוע' : 'מקום ' + (i + 1)}</div><div class="t">${esc(nameOf(t.uid))}${t.uid === me ? ' (את/ה)' : ''}</div><div class="a">${t.wins} ניצחונות${t.bonus + t.bet ? ' · +' + (t.bonus + t.bet) + ' בונוס' : ''}</div></div>
+      <div class="rv-pts">${t.total}<small>נק׳</small></div>`;
+    stage.prepend(card);
+    if (i === 0 && !reduce) confetti(el);
+  }));
+  const songCardEl = (label, x, cls) => { const c = document.createElement('div'); c.className = 'rv-card wk-song ' + (cls || '');
+    c.innerHTML = `<div class="rv-medal">${label[0]}</div>${artHtml(x, 'rv')}<div class="rv-info"><div class="rv-place">${label[1]}</div><div class="t">${esc(x.title)}</div><div class="a">${esc(x.artist || '')}</div><div class="rv-who">${withAv(x.uid, 'xs')}</div><div class="a">${esc(x.topic)}</div></div><div class="rv-pts">${x.pts}<small>נק׳</small></div>`;
+    return c };
+  if (s.best) later(() => { extra.appendChild(songCardEl(['🎵', 'השיר של השבוע'], s.best)); playRevealSong(s.best, revealTimers) });
+  if (s.flop) later(() => extra.appendChild(songCardEl(['💀', 'Flop of the Week'], s.flop)));
+  const lines = [];
+  if (s.guesser) lines.push(`🔮 הכי הרבה ניחושים נכונים: <b>${s.guesser.u.map(u => esc(nameOf(u))).join(', ')}</b> (${s.guesser.n})`);
+  if (s.bettor) lines.push(`🎰 הכי הרבה הימורים נכונים: <b>${s.bettor.u.map(u => esc(nameOf(u))).join(', ')}</b> (${s.bettor.n})`);
+  later(() => { if (lines.length) { const p = document.createElement('div'); p.className = 'wk-lines'; p.innerHTML = lines.map(l => `<p>${l}</p>`).join(''); extra.appendChild(p) } el.querySelector('.wk-end').hidden = false });
 }
