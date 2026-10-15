@@ -181,6 +181,11 @@ app.addEventListener('click', async e => {
     if (a === 'remindcopy') { try { await navigator.clipboard.writeText(txt); toast('התזכורת הועתקה') } catch (_) { toast('לא הצלחתי להעתיק במכשיר הזה') } }
     else window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
   }
+  else if (a === 'install') {
+    if (installPrompt) { installPrompt.prompt(); const c = await installPrompt.userChoice.catch(() => null); installPrompt = null; if (c && c.outcome === 'accepted') toast('מתקין…'); render() }
+    else { view = { name: 'install', v: null }; render(); scrollTo(0, 0) }
+  }
+  else if (a === 'installx') { try { localStorage.setItem('ptv_inst_x', '1') } catch (_) { } render() }
   else if (a === 'htab') { homeTab = v; render() }
   else if (a === 'rmphoto') { if (confirm('להסיר את תמונת הפרופיל?')) await write(() => db.doc('players/' + me).update({ photo: firebase.firestore.FieldValue.delete() }), 'התמונה הוסרה') }
   else if (a === 'glogin') { googleSignIn() }
@@ -387,6 +392,16 @@ app.addEventListener('change', async e => {
     render();
   } catch (_) { toast('לא הצלחתי לטעון את התמונה. נסו תמונה אחרת.') }
 });
+
+/* ---------- install as an app ---------- */
+let installPrompt = null;
+const isStandalone = () => !!(window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isInAppBrowser = () => /FBAN|FBAV|Instagram|WhatsApp|Line\/|GSA\//.test(navigator.userAgent);
+function installDismissed() { try { return localStorage.getItem('ptv_inst_x') === '1' } catch (_) { return false } }
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => { });
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; schedule() });
+window.addEventListener('appinstalled', () => { installPrompt = null; toast('PeakTheVibe הותקן 🎉'); schedule() });
 
 /* ---------- boot ---------- */
 bootFirebase();

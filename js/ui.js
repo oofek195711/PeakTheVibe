@@ -94,6 +94,7 @@ function render() {
   else if (v === 'admin' && isAdmin()) body = adminView();
   else if (v === 'suggest') body = suggestView();
   else if (v === 'help') body = helpView();
+  else if (v === 'install') body = installView();
   else if (v === 'feedback') body = feedbackView();
   else if (v === 'inbox' && isAdmin()) body = inboxView();
   else if (v === 'history' && isAdmin()) body = historyView();
@@ -293,6 +294,17 @@ function inboxView() {
     </div>` }).join('');
   return h;
 }
+function installView() {
+  const step = (n, t) => `<div class="hitem inststep"><span class="hic">${n}</span><div><p style="margin:0;color:var(--ink)">${t}</p></div></div>`;
+  let h = `<button class="back" data-act="go" data-v="home">→ חזרה</button>
+  <div class="display" style="font-size:48px;margin:4px 0 6px">התקנת האפליקציה</div>
+  <p class="hint" style="margin:0 0 14px">אחרי ההתקנה PeakTheVibe נפתח מהאייקון במסך הבית, במסך מלא, בלי שורת הכתובת. הניקוד וההיסטוריה שלכם נשמרים.</p>`;
+  if (isInAppBrowser()) h += `<div class="banner">⚠️ פתחתם את המשחק מתוך אפליקציה אחרת (וואטסאפ, אינסטגרם…). כדי להתקין, פתחו אותו קודם ב${isIOS() ? 'ספארי' : 'כרום'}: בתפריט של הדף, "פתח בדפדפן".</div>`;
+  if (isIOS()) h += step('1', 'פתחו את המשחק ב<b>ספארי</b>.') + step('2', 'לחצו על כפתור השיתוף <b>⬆️</b> (בתחתית המסך, או ליד שורת הכתובת).') + step('3', 'גללו ובחרו <b>"הוספה למסך הבית"</b>, ואז <b>"הוסף"</b>.') + `<p class="hint">באייפון אפשר להתקין רק מספארי, בגלל מגבלה של אפל.</p>`;
+  else h += step('1', 'פתחו את התפריט של הדפדפן <b>⋮</b> (למעלה בפינה).') + step('2', 'בחרו <b>"התקנת אפליקציה"</b> או <b>"הוספה למסך הבית"</b>.') + step('3', 'אשרו, והאייקון יופיע במסך הבית.');
+  h += `<div class="banner" style="margin-top:14px">💡 באייפון, האפליקציה שומרת נתונים בנפרד מספארי, אז אחרי ההתקנה היא עלולה לזהות אתכם כמכשיר חדש. אם זה קורה, במסך הכניסה בחרו "כבר גיביתי? התחברות עם Google", או "שחזר את החשבון שלי".</div>`;
+  return h;
+}
 function metricPicker(key) {
   const d = D[key];
   return `<label class="f">המדד השני (הראשון תמיד: התאמה לנושא)</label>
@@ -312,6 +324,7 @@ function homeView() {
   const done = doneRounds().sort((a, b) => b.rateEnds - a.rateEnds);
   let head = `<div class="brand"><span class="bright"><button class="meav" data-act="prof" data-v="${esc(me)}" aria-label="הפרופיל שלי">${avatarHtml(me, 'sm')}<span>${esc(nameOf(me))}</span></button><button class="qbtn" data-act="go" data-v="help" aria-label="איך משחקים">?</button></span><span class="bname"><span class="display">PeakTheVibe</span>${LOGO()}</span></div>`;
   if (wantAdmin && !S.admin) head += `<div class="banner">עוד אין מנהל למשחק. <button class="btn" style="min-height:40px;margin-top:8px" data-act="claim">הפוך אותי למנהל</button></div>`;
+  if (!isStandalone() && !installDismissed()) head += `<div class="instbar"><span>📲 <b>התקינו את PeakTheVibe</b><small>נפתח במסך מלא, עם אייקון במסך הבית.</small></span><button class="btn" data-act="install">התקנה</button><button class="instx" data-act="installx" aria-label="לא עכשיו">✕</button></div>`;
   const nt = nextAutoTime();
   const nextLine = `<p class="hint" style="margin:0 0 6px">הנושא הבא נפתח ${new Date(nt).toDateString() === new Date().toDateString() ? 'היום' : 'מחר'} ב-${hh(S.settings.startHour)}.</p>`;
   if (!S.rounds.length) return head + `<div class="empty"><div class="display">עוד אין נושא</div><p class="muted">הסבב הראשון ייפתח לבד ב-${hh(S.settings.startHour)}.</p></div>`;
