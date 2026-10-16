@@ -476,3 +476,23 @@ body.mode-x .rv-card.win .rv-who{color:#FFD60A}
 .res.xres .xquote{font-size:15px}
 .xrv{width:80px;height:80px;border-radius:16px;background:#FFD60A;display:flex;align-items:center;justify-content:center;font-size:44px}
 .rv-info .t{font-size:16px}
+
+/* ---------- v1.5.1: one-time "new game" popup ---------- */
+.news{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:18px;background:rgba(23,21,15,.62);opacity:0;transition:opacity .25s}
+.news[hidden]{display:none}
+.news.on{opacity:1}
+body.nw-open{overflow:hidden}
+.nw-card{position:relative;width:100%;max-width:420px;max-height:calc(100vh - 36px);overflow:auto;background:#FFF8D6;color:#17150F;border-radius:26px;padding:0 20px 18px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35);transform:translateY(24px) scale(.96);transition:transform .35s cubic-bezier(.2,1.4,.4,1)}
+.news.on .nw-card{transform:none}
+.nw-tape{margin:0 -20px 6px;border-radius:26px 26px 0 0;transform:none}
+.nw-big{font-size:64px;line-height:1;margin:14px 0 6px;animation:nwbob 2.4s ease-in-out infinite}
+@keyframes nwbob{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg) translateY(-4px)}}
+.nw-pill{background:#17150F;color:#FFD60A}
+.nw-card h2{margin:8px 0 4px;font-size:44px;line-height:1;color:#17150F;-webkit-text-fill-color:#17150F;background:none}
+.nw-lead{margin:0 0 12px;font-size:16px}
+.nw-list{list-style:none;margin:0 0 16px;padding:12px 14px;background:#fff;border-radius:18px;display:grid;gap:9px;text-align:start}
+.nw-list li{display:flex;gap:10px;align-items:flex-start;font-size:15px;line-height:1.4}
+.nw-list b{flex:none;font-size:18px}
+.nw-card .btn{margin-top:8px;background:#17150F;color:#FFD60A}
+.nw-card .btn.ghost{background:transparent;color:#17150F;box-shadow:inset 0 0 0 2px #17150F33}
+@media (prefers-reduced-motion:reduce){.news,.nw-card{transition:none}.nw-big{animation:none}}

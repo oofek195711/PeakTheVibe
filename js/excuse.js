@@ -131,3 +131,53 @@ setInterval(() => {
   el.classList.toggle('hot', left < 10500);
   if (left <= 0) xFinish(r, true);
 }, 250);
+
+/* One-time "what's new" popup announcing the excuse game. Shown once per device, on the home screen,
+   before the weekly summary. Lives in its own #news layer, outside #app. */
+const NEWS_KEY = 'ptv_news_x1';
+let newsOn = false;
+function maybeNews() {
+  if (newsOn || revealOn || view.name !== 'home') return;
+  try { if (localStorage.getItem(NEWS_KEY) === '1') return } catch (_) { return }
+  const el = document.getElementById('news'); if (!el) return;
+  newsOn = true;
+  const xr = S.rounds.find(r => isX(r) && phase(r) !== 'done' && r.createdAt <= now());
+  el.innerHTML = `<div class="nw-card" role="dialog" aria-modal="true" aria-labelledby="nw-t">
+    <div class="tape nw-tape"><span>🙊 חדש · משחק התירוצים · חדש · משחק התירוצים · חדש · משחק התירוצים</span></div>
+    <div class="nw-big">🙊</div>
+    <div class="pill nw-pill">חדש ב־PeakTheVibe</div>
+    <h2 class="display" id="nw-t">משחק התירוצים</h2>
+    <p class="nw-lead">כל יום מצב מביך חדש. אתם צריכים להמציא תירוץ, והכי מצחיק מנצח. לא הכי אמין 😅</p>
+    <ul class="nw-list">
+      <li><b>⏱️</b><span>המצב נחשף רק כשלוחצים "התחל", ומשם יש לכם זמן מוגבל לכתוב</span></li>
+      <li><b>😂</b><span>מדרגים כמה כל תירוץ מצחיק, מנחשים מי כתב ומהמרים על המנצח</span></li>
+      <li><b>🏆</b><span>מובילים ותארים משלו, בנפרד ממשחק השירים</span></li>
+      <li><b>🔀</b><span>עוברים בין המשחקים במתג למעלה</span></li>
+    </ul>
+    <button class="btn block" data-nw="go">${xr ? 'לתירוץ של היום ←' : 'יאללה, בואו ננסה ←'}</button>
+    <button class="btn ghost block" data-nw="close">אחר כך</button>
+  </div>`;
+  el.hidden = false; document.body.classList.add('nw-open');
+  requestAnimationFrame(() => el.classList.add('on'));
+  const b = el.querySelector('[data-nw=go]'); if (b) b.focus({ preventScroll: true });
+}
+function closeNews(go) {
+  try { localStorage.setItem(NEWS_KEY, '1') } catch (_) { }
+  const el = document.getElementById('news');
+  if (el) { el.classList.remove('on'); el.hidden = true; el.innerHTML = '' }
+  document.body.classList.remove('nw-open'); newsOn = false;
+  if (go) {
+    gameMode = 'excuse'; try { localStorage.setItem('ptv_mode', 'excuse') } catch (_) { }
+    homeTab = 'open'; view = { name: 'home', v: null };
+  }
+  render(); scrollTo(0, 0);
+}
+(() => {
+  const el = document.getElementById('news'); if (!el) return;
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-nw]');
+    if (b) closeNews(b.dataset.nw === 'go');
+    else if (e.target === el) closeNews(false);
+  });
+  document.addEventListener('keydown', e => { if (newsOn && e.key === 'Escape') closeNews(false) });
+})();

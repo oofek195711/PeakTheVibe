@@ -119,7 +119,7 @@ function render() {
   else body = homeView();
   const y = window.scrollY || 0;
   app.innerHTML = body + FOOT() + (rateBar ? '' : nav());
-  if (view.name === 'home') maybeWeekly();
+  if (view.name === 'home') { maybeNews(); if (!newsOn) maybeWeekly() }
   app.querySelectorAll('details[data-k]').forEach(d => { if (openDetails.has(d.dataset.k)) d.open = true });
   if (window.scrollY !== y) window.scrollTo(0, y);
 }
