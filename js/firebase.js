@@ -20,36 +20,43 @@ function markSeen(rid) {
 let logsSub = null; const logTried = {};
 function ensureLogs() {
   if (!isAdmin() || !S.loaded.logs) return;
-  doneRounds().forEach(r => {
+  S.rounds.filter(r => phase(r) === 'done').forEach(r => {
     if (S.logs[r.id] || logTried[r.id]) return;
     logTried[r.id] = 1;
     db.doc('logs/' + r.id).set(buildLog(r)).catch(() => { setTimeout(() => { logTried[r.id] = 0 }, 30000) });
   });
 }
 const attempted = {};
-async function ensureToday() {
+/* Opens today's automatic round for each game (any player's phone may do it; a transaction keeps it to one). */
+async function ensureToday() { await ensureTodayMode('song'); await ensureTodayMode('excuse') }
+async function ensureTodayMode(m) {
   if (!ready || !S.loaded.rounds || !S.loaded.topics || !S.loaded.settings) return;
-  const today = new Date(), st = startOf(today);
+  const today = new Date(), st = startOf(today, m), set = setOf(m);
   if (now() < st) return;
-  const id = dayId(today);
+  const id = dayId(today, m);
   if (S.rounds.some(r => r.id === id) || attempted[id]) return;
   if ((S.settings.skipDays || []).includes(id)) return; // the admin deleted today's round: don't reopen it
   attempted[id] = true;
-  const head = queue()[0];
-  let topic, metric2, funny, tref = null;
-  let lang = 'any', img = '';
-  if (head) { img = head.img || ''; topic = head.text; metric2 = head.metric2 || DEFAULT_M.m; funny = head.funny !== false; lang = langOf(head); tref = db.doc('topics/' + head.id) }
-  else {
-    ({ topic, metric2, funny } = fallbackTopic(id));
+  const head = queue(m)[0];
+  let base, tref = null;
+  if (head) {
+    base = m === 'excuse' ? { topic: head.text, mode: 'excuse', funny: true, metric2: 'כמה זה מצחיק' }
+      : { topic: head.text, metric2: head.metric2 || DEFAULT_M.m, funny: head.funny !== false, lang: langOf(head) };
+    if (head.img) base.img = head.img;
+    tref = db.doc('topics/' + head.id);
+  } else {
+    base = fallbackTopic(id, m);
+    if (m !== 'excuse') base.lang = 'any';
   }
-  const pe = st + S.settings.pickHours * 3600e3;
+  if (m === 'excuse') base.timer = set.timer;
+  const pe = st + set.pickHours * 3600e3;
   const rref = db.doc('rounds/' + id);
   try {
     await db.runTransaction(async t => {
       const rs = await t.get(rref);
       if (rs.exists) return;
       if (tref) { const ts = await t.get(tref); if (!ts.exists || ts.data().status !== 'approved') throw new Error('stale') }
-      t.set(rref, { topic, metric2, funny, lang, ...(img ? { img } : {}), scale: 10, auto: true, by: 'auto', createdAt: st, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 });
+      t.set(rref, { ...base, scale: 10, auto: true, by: 'auto', createdAt: st, pickEnds: pe, rateEnds: pe + set.rateHours * 3600e3 });
       if (tref) t.update(tref, { status: 'used', usedOn: id });
     });
   } catch (e) { setTimeout(() => { attempted[id] = false }, 20000) }
@@ -146,7 +153,7 @@ async function bootFirebase() {
     const err = e => { fatal = 'אין גישה לנתונים (' + (e && e.code || '') + '). בדוק את ה-Rules ב-Firebase.'; render() };
     db.doc('links/' + authUid).onSnapshot(s => applyLink(s.exists ? s.data() : null), () => applyLink(null));
     db.collection('rounds').onSnapshot(s => { S.rounds = s.docs.map(x => ({ id: x.id, ...x.data() })); S.loaded.rounds = true; lastSig = S.rounds.map(r => r.id + phase(r)).join(); schedule() }, err);
-    db.collection('picks').onSnapshot(s => { S.picks = s.docs.map(x => x.data()); S.loaded.picks = true; schedule() }, err);
+    db.collection('picks').onSnapshot(s => { S.picks = s.docs.map(x => { const d = x.data({ serverTimestamps: 'estimate' }); if (d.startedAt && d.startedAt.toMillis) d.startedMs = d.startedAt.toMillis(); return d }); S.loaded.picks = true; schedule() }, err);
     db.collection('ratings').onSnapshot(s => { S.ratings = s.docs.map(x => x.data()); S.loaded.ratings = true; schedule() }, err);
     db.collection('players').onSnapshot(s => { const m = {}; s.docs.forEach(x => m[x.id] = x.data()); S.players = m; S.loaded.players = true; schedule() }, err);
     db.collection('topics').onSnapshot(s => { S.topics = s.docs.map(x => ({ id: x.id, ...x.data() })); S.loaded.topics = true; schedule() }, err);

@@ -7,10 +7,10 @@ function onField(e) {
   if (k.startsWith('pk:') && (fld === 'title' || fld === 'artist') && o.trackId) { o.trackId = ''; o.artwork = ''; o.previewUrl = ''; o.album = ''; o.source = 'manual' }
   o[fld] = e.target.type === 'checkbox' ? e.target.checked : e.target.tagName === 'SELECT' ? +e.target.value : e.target.value;
 }
-app.addEventListener('input', e => { onField(e); const k = e.target.dataset && e.target.dataset.search; if (k) liveSearch(k) });
+app.addEventListener('input', e => { onField(e); const ds = e.target.dataset || {}; if (ds.search) liveSearch(ds.search); if (ds.xtext) xAutosave(ds.xtext) });
 app.addEventListener('change', onField);
 const maxOrder = () => S.topics.reduce((m, t) => Math.max(m, t.order || 0), 0);
-const IMG_TOPIC = 'שיר לתמונה 🖼️';
+const IMG_TOPIC = 'שיר לתמונה 🖼️', IMG_XTOPIC = 'מה התירוץ? 🖼️';
 const hasImg = k => !!(D[k] && (D[k].imgData || D[k].img));
 /* Uploads a newly chosen topic picture (if any) and returns the picture's id, or '' when the topic has none. */
 async function saveTopicImg(k) {
@@ -22,7 +22,7 @@ async function saveTopicImg(k) {
   }
   return d.img || '';
 }
-const topicOf = k => ({ text: (D[k].t || '').trim().slice(0, 90) || (hasImg(k) ? IMG_TOPIC : ''), metric2: (D[k].m || '').trim().slice(0, 50) || DEFAULT_M.m, funny: !!D[k].f, lang: LANGS[D[k].lang] ? D[k].lang : 'any' });
+const topicOf = k => ({ ...(gameMode === 'excuse' ? { mode: 'excuse' } : {}), text: (D[k].t || '').trim().slice(0, 90) || (hasImg(k) ? (gameMode === 'excuse' ? IMG_XTOPIC : IMG_TOPIC) : ''), metric2: (D[k].m || '').trim().slice(0, 50) || DEFAULT_M.m, funny: !!D[k].f, lang: LANGS[D[k].lang] ? D[k].lang : 'any' });
 
 app.addEventListener('click', async e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
@@ -57,7 +57,7 @@ app.addEventListener('click', async e => {
   }
   else if (a === 'rmtimg') { const k = b.dataset.k; if (D[k]) { D[k].img = ''; D[k].imgData = ''; render() } }
   else if (a === 'lang') { const k = b.dataset.k; if (!D[k]) return; D[k].lang = v; render() }
-  else if (a === 'idea') { const x = SUGGEST.find(i => i.t === v); const k = b.dataset.k; if (!x || !D[k]) return; Object.assign(D[k], { t: x.t, m: x.m, f: x.f }); render() }
+  else if (a === 'idea') { const x = (gameMode === 'excuse' ? XSUGGEST : SUGGEST).find(i => i.t === v); const k = b.dataset.k; if (!x || !D[k]) return; Object.assign(D[k], x.m ? { t: x.t, m: x.m, f: x.f } : { t: x.t }); render() }
   else if (a === 'dlcsv') { downloadCsv() }
   else if (a === 'sugg') { const s = SUGGEST.find(x => x.t === v); Object.assign(D.new, { t: s.t, m: s.m, f: s.f }); render() }
   else if (a === 'metric') { const x = METRICS[+b.dataset.i]; Object.assign(D[b.dataset.k], { m: x.m, f: x.f }); render() }
@@ -76,7 +76,8 @@ app.addEventListener('click', async e => {
   else if (a === 'create') {
     const t = topicOf('new'); if (!t.text) { toast('צריך נושא'); return }
     const id = 'r' + now() + Math.random().toString(36).slice(2, 6), t0 = now(), pe = t0 + D.new.ph * 3600e3;
-    const ok = await write(async () => { const img = await saveTopicImg('new'); await db.doc('rounds/' + id).set({ topic: t.text, metric2: t.metric2, funny: t.funny, lang: t.lang, ...(img ? { img } : {}), scale: 10, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + D.new.rh * 3600e3 }) }, 'הסבב נפתח');
+    const xf = gameMode === 'excuse' ? { mode: 'excuse', timer: +D.new.tm || 90, funny: true, metric2: 'כמה זה מצחיק' } : { metric2: t.metric2, funny: t.funny, lang: t.lang };
+    const ok = await write(async () => { const img = await saveTopicImg('new'); await db.doc('rounds/' + id).set({ topic: t.text, ...xf, ...(img ? { img } : {}), scale: 10, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + D.new.rh * 3600e3 }) }, 'הסבב נפתח');
     if (ok) { delete D.new; view = { name: 'round', v: id }; render(); scrollTo(0, 0) }
   }
   else if (a === 'submittopic') {
@@ -119,8 +120,8 @@ app.addEventListener('click', async e => {
     });
   }
   else if (a === 'savesettings') {
-    const s = D.set;
-    await write(() => db.doc('config/settings').set({ startHour: s.sh, pickHours: s.ph, rateHours: s.rh }, { merge: true }), 'נשמר');
+    const xm = gameMode === 'excuse', s = D[xm ? 'xset' : 'set'];
+    await write(() => db.doc('config/settings').set(xm ? { xStartHour: s.sh, xPickHours: s.ph, xRateHours: s.rh, xTimer: s.tm } : { startHour: s.sh, pickHours: s.ph, rateHours: s.rh }, { merge: true }), 'נשמר');
   }
   else if (a === 'delplayer') {
     const p = S.players[v]; if (!p || v === me || v === S.admin) return;
@@ -142,11 +143,13 @@ app.addEventListener('click', async e => {
   }
   else if (a === 'nextnow') {
     const head = queue()[0];
-    const t = head ? { topic: head.text, metric2: head.metric2 || DEFAULT_M.m, funny: head.funny !== false, lang: langOf(head) } : fallbackTopic('n' + now());
+    const xm = gameMode === 'excuse', set = setOf();
+    const t = head ? (xm ? { topic: head.text, mode: 'excuse', funny: true, metric2: 'כמה זה מצחיק' } : { topic: head.text, metric2: head.metric2 || DEFAULT_M.m, funny: head.funny !== false, lang: langOf(head) }) : fallbackTopic('n' + now());
     if (head && head.img) t.img = head.img;
+    if (xm) t.timer = set.timer;
     if (!confirm('לפתוח עכשיו סבב עם הנושא: "' + t.topic + '"?')) return;
-    const id = 'r' + now() + Math.random().toString(36).slice(2, 6), t0 = now(), pe = t0 + S.settings.pickHours * 3600e3;
-    const ok = await write(() => { const w = db.batch(); w.set(db.doc('rounds/' + id), { ...t, scale: 10, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + S.settings.rateHours * 3600e3 }); if (head) w.update(db.doc('topics/' + head.id), { status: 'used', usedOn: id }); return w.commit() }, 'הסבב נפתח');
+    const id = 'r' + now() + Math.random().toString(36).slice(2, 6), t0 = now(), pe = t0 + set.pickHours * 3600e3;
+    const ok = await write(() => { const w = db.batch(); w.set(db.doc('rounds/' + id), { ...t, scale: 10, by: me, createdAt: t0, pickEnds: pe, rateEnds: pe + set.rateHours * 3600e3 }); if (head) w.update(db.doc('topics/' + head.id), { status: 'used', usedOn: id }); return w.commit() }, 'הסבב נפתח');
     if (ok) { view = { name: 'round', v: id }; render(); scrollTo(0, 0) }
   }
   else if (a === 'savepick' || a === 'lockpick') {
@@ -186,6 +189,26 @@ app.addEventListener('click', async e => {
     else { view = { name: 'install', v: null }; render(); scrollTo(0, 0) }
   }
   else if (a === 'installx') { try { localStorage.setItem('ptv_inst_x', '1') } catch (_) { } render() }
+  else if (a === 'setmode') {
+    if (v !== 'song' && v !== 'excuse') return;
+    gameMode = v; try { localStorage.setItem('ptv_mode', v) } catch (_) { }
+    homeTab = 'open';
+    if (view.name === 'round' || view.name === 'new') view = { name: 'home', v: null };
+    render(); scrollTo(0, 0);
+  }
+  else if (a === 'xstart') {
+    const r = S.rounds.find(x => x.id === view.v); if (!r || phase(r) !== 'pick') { toast('זמן הכתיבה נגמר'); render(); return }
+    if (S.picks.some(p => p.rid === r.id && p.uid === me)) return;
+    myStartLocal[r.id] = Date.now();
+    const ok = await write(() => db.doc('picks/' + r.id + '__' + me).set({ rid: r.id, uid: me, text: '', startedAt: firebase.firestore.FieldValue.serverTimestamp(), at: now() }));
+    if (!ok) delete myStartLocal[r.id];
+    else setTimeout(() => { const ta = app.querySelector('[data-xtext]'); if (ta) ta.focus() }, 60);
+  }
+  else if (a === 'xsend') {
+    const r = S.rounds.find(x => x.id === view.v); if (!r) return;
+    if (!String((D['xt:' + r.id] || {}).t || '').trim()) { toast('כתבו תירוץ קודם'); return }
+    await xFinish(r, false);
+  }
   else if (a === 'htab') { homeTab = v; render() }
   else if (a === 'rmphoto') { if (confirm('להסיר את תמונת הפרופיל?')) await write(() => db.doc('players/' + me).update({ photo: firebase.firestore.FieldValue.delete() }), 'התמונה הוסרה') }
   else if (a === 'glogin') { googleSignIn() }
@@ -236,16 +259,18 @@ app.addEventListener('click', async e => {
   else if (a === 'endpick') { const r = S.rounds.find(x => x.id === view.v); if (!r) return;
     const st = roundStatus(r);
     if (!st.all) {
-      const miss = st.groups.filter(g => g.l !== 'נעלו').flatMap(g => g.u);
-      const none = st.groups.filter(g => g.l === 'נכנסו ועוד לא בחרו' || g.l === 'עוד לא נכנסו').flatMap(g => g.u);
-      if (!confirm(`עוד לא כולם נעלו (${miss.length}: ${miss.map(nameOf).join(', ')}).\n\nמי ששמר טיוטה ישתתף עם הטיוטה. מי שלא בחר בכלל${none.length ? ' (' + none.map(nameOf).join(', ') + ')' : ''} לא ישתתף בסבב.\n\nלעבור לדירוג בכל זאת?`)) return;
+      const miss = st.groups.filter(g => g.ic !== '🔒').flatMap(g => g.u);
+      const none = st.groups.filter(g => g.ic === '👀' || g.ic === '💤').flatMap(g => g.u);
+      const xr = isX(r);
+      if (!confirm(`עוד לא כולם ${xr ? 'שלחו' : 'נעלו'} (${miss.length}: ${miss.map(nameOf).join(', ')}).\n\n${xr ? 'מי שכותב עכשיו ישתתף עם מה שכבר כתב.' : 'מי ששמר טיוטה ישתתף עם הטיוטה.'} מי ש${xr ? 'לא כתב' : 'לא בחר'} בכלל${none.length ? ' (' + none.map(nameOf).join(', ') + ')' : ''} לא ישתתף בסבב.\n\nלעבור לדירוג בכל זאת?`)) return;
     }
     const t = now(); await write(() => db.doc('rounds/' + r.id).update({ pickEnds: t, rateEnds: t + (r.rateEnds - r.pickEnds) }), 'שלב הדירוג התחיל') }
   else if (a === 'endrate') { const r = S.rounds.find(x => x.id === view.v); if (!r) return;
     const st = roundStatus(r);
     if (!st.all) {
-      const miss = st.groups.filter(g => g.l !== 'נעלו דירוג').flatMap(g => g.u).filter(u => st.pickers.has(u));
-      if (!confirm(`עוד לא כולם נעלו את הדירוג (${miss.length}: ${miss.map(nameOf).join(', ')}).\n\nמי שבחר שיר ולא דירג את כל השירים יקבל 0.\n\nלחשוף תוצאות בכל זאת?`)) return;
+      const miss = st.groups.filter(g => g.ic !== '🔒').flatMap(g => g.u).filter(u => st.pickers.has(u));
+      const w = W(modeOf(r));
+      if (!confirm(`עוד לא כולם נעלו את הדירוג (${miss.length}: ${miss.map(nameOf).join(', ')}).\n\nמי ששלח ${w.item} ולא דירג את כל ה${w.items} יקבל 0.\n\nלחשוף תוצאות בכל זאת?`)) return;
     } await write(() => db.doc('rounds/' + r.id).update({ rateEnds: now() }), 'התוצאות נחשפו') }
   else if (a === 'copylist') {
     const r = S.rounds.find(x => x.id === view.v); if (!r) return;
@@ -404,4 +429,6 @@ window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); instal
 window.addEventListener('appinstalled', () => { installPrompt = null; toast('PeakTheVibe הותקן 🎉'); schedule() });
 
 /* ---------- boot ---------- */
+showLoader();
+setTimeout(() => { if (document.getElementById('boot')) render() }, 10200); // reveal the 'taking long' message
 bootFirebase();

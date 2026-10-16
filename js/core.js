@@ -1,5 +1,5 @@
-const APP_VERSION = '21';     // internal build number: bump on every upload, together with ?v= in index.html
-const APP_LABEL = '1.4.4';   // shown to players. 1.x.y: y = GitHub-only change, x = Firebase change (y resets to 0)
+const APP_VERSION = '23';     // internal build number: bump on every upload, together with ?v= in index.html
+const APP_LABEL = '1.5.0';   // shown to players. 1.x.y: y = GitHub-only change, x = Firebase change (y resets to 0)
 /* PeakTheVibe: constants, shared state and small utilities.
    Loaded first. All scripts are classic scripts sharing one global scope. */
 
@@ -50,9 +50,38 @@ const S = { rounds: [], picks: [], ratings: [], players: {}, topics: [], links: 
 let view = { name: 'home', v: null };
 let boardMode = 'week';
 let homeTab = 'open';
+/* Which game is on screen: 'song' (🎵 the song game) or 'excuse' (🙊 the excuse game). Remembered per device. */
+let gameMode = (() => { try { return localStorage.getItem('ptv_mode') === 'excuse' ? 'excuse' : 'song' } catch (_) { return 'song' } })();
+const modeOf = x => x && x.mode === 'excuse' ? 'excuse' : 'song';
+const isX = x => modeOf(x) === 'excuse';
+const inMode = (x, m) => modeOf(x) === (m || gameMode);
+const XSUGGEST = [
+  'החברה שלך תפסה אותך בטינדר. מה התירוץ?', 'איחרת לחתונה שלך בשלוש שעות.', 'המשטרה מצאה אותך עירום בסופר.',
+  'שלחת בטעות תמונת עירום לקבוצה של העבודה.', 'נתפסת אוכל מהעוגה של יום ההולדת לפני המסיבה.', 'אמא שלך מצאה את היסטוריית החיפושים שלך.',
+  'נרדמת באמצע ראיון עבודה בזום.', 'הבוס ראה אותך בחוף ביום שלקחת יום מחלה.', 'שכחת את יום ההולדת של בן או בת הזוג.',
+  'נתפסת שר בקולי קולות במעלית שקופה.', 'התקשרת לאקס שלך בשלוש לפנות בוקר.', 'שפכת קפה על הלפטופ של הבוס.',
+  'עשית לייק לתמונה מלפני 6 שנים של האקס של החבר הכי טוב שלך.', 'הגעת ליום הראשון בעבודה בפיג׳מה.', 'השכנים שמעו אותך מדבר עם החתול בקול של תינוק.',
+  'נעלת את עצמך מחוץ לבית בתחתונים.', 'אכלת את האוכל של השותף בדירה. שוב.', 'נפלת על הבמה באמצע טקס הסיום.',
+  'נרדמת בהופעה של הלהקה האהובה על בת הזוג שלך.', 'שלחת הודעה על מישהו בטעות אליו.', 'מצאו אותך ישן בתוך ארון בחנות של איקאה.',
+  'הגעת לשדה התעופה ביום הלא נכון.', 'בנאום בחתונה של החבר שלך קראת לכלה בשם של האקסית שלו.', 'שכחת את הוואטסאפ פתוח על המחשב בעבודה.',
+  'הוקלטת מקלל לקוח כי חשבת שהשיחה נגמרה.', 'הכלב של השכנים נעלם, וראו אותו אצלך במרפסת.', 'ההורים חזרו מוקדם מחופשה ומצאו מסיבה בבית.',
+  'נתפסת מתאמן על נאום זכייה באוסקר מול המראה.', 'חמותך מצאה את הגרביים שלך בכיור של המטבח.', 'הגשת עבודה עם השם של מישהו אחר עליה.',
+  'נתפסת בורח מדייט דרך החלון בשירותים.', 'המורה תפסה אותך מעתיק מהחבר שלידך במבחן.'
+].map(t => ({ t }));
+/* Daily-round settings per game. */
+function setOf(m) {
+  const s = S.settings;
+  return (m || gameMode) === 'excuse'
+    ? { startHour: s.xStartHour ?? s.startHour, pickHours: s.xPickHours || 12, rateHours: s.xRateHours || 12, timer: s.xTimer || 90 }
+    : { startHour: s.startHour, pickHours: s.pickHours, rateHours: s.rateHours };
+}
+const W = m => (m || gameMode) === 'excuse'
+  ? { item: 'תירוץ', items: 'תירוצים', one: 'תירוץ אחד', pickVerb: 'לכתיבה', pickNoun: 'לשליחת תירוץ', icon: '🙊', name: 'תירוצים', topic: 'מצב', topics: 'מצבים' }
+  : { item: 'שיר', items: 'שירים', one: 'שיר אחד', pickVerb: 'לבחירה', pickNoun: 'לבחירה', icon: '🎵', name: 'שירים', topic: 'נושא', topics: 'נושאים' };
 const D = {};
 const rateDraft = {};
 let pending = false, busy = false;
+const BOOT_T0 = Date.now(); // when the page started loading, for the loading screen
 const wantAdmin = /[?&]admin\b/.test(location.search);
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -76,7 +105,7 @@ function fmtLeft(ms) {
 const fmtDate = t => new Date(t).toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric' });
 const hh = h => String(h).padStart(2, '0') + ':00';
 function weekStart() { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - d.getDay()); return d.getTime() }
-function dayId(d) { return 'd' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
+function dayId(d, m) { return (m === 'excuse' ? 'x' : 'd') + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
 function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2800) }
 function draft(k, init) { if (!D[k]) D[k] = init(); return D[k] }
 

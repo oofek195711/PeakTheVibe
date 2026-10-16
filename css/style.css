@@ -409,3 +409,70 @@ button.qrow.pickme{width:100%;border:0;text-align:right;cursor:pointer}
 .instbar .btn{min-height:40px;padding:8px 16px;font-size:14px}
 .instx{border:0;background:none;color:var(--muted);font-size:16px;width:32px;height:32px;padding:0;cursor:pointer}
 .inststep b{display:inline;font-size:inherit}
+
+/* ---------- v1.4.5: loading screen ---------- */
+.boot{min-height:72vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding:24px 0}
+.boot-logo{width:112px;height:112px;border-radius:26%;box-shadow:0 10px 30px rgba(232,62,114,.35);animation:bootPulse 1.6s ease-in-out infinite}
+.boot-title{font-family:"Karantina","Assistant",system-ui,sans-serif;font-weight:700;font-size:44px;line-height:1;direction:ltr}
+.eq{display:flex;align-items:flex-end;gap:5px;height:34px}
+.eq i{width:7px;height:100%;border-radius:4px;background:var(--pink);transform-origin:bottom;animation:eqBar 1s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:-.2s;background:var(--mint)}
+.eq i:nth-child(3){animation-delay:-.5s}
+.eq i:nth-child(4){animation-delay:-.75s;background:var(--mint)}
+.eq i:nth-child(5){animation-delay:-.35s}
+.boot-bar{width:min(220px,60vw);height:6px;border-radius:99px;background:var(--chip);overflow:hidden}
+.boot-bar span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--pink),var(--mint));transition:width .4s ease}
+.boot-step{margin:0;color:var(--muted);font-size:15px;font-weight:600;min-height:1.5em}
+.boot-slow{max-width:300px}.boot-slow p{margin:0 0 10px;font-size:14px}
+@keyframes eqBar{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
+@keyframes bootPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@media (prefers-reduced-motion:reduce){.eq i,.boot-logo{animation:none}.eq i{transform:scaleY(.6)}}
+
+/* =================== v1.5.0: the excuse game (🙊) =================== */
+/* theme: caution-tape yellow and black, applied to the whole page while the excuse game is on screen */
+body.mode-x{--bg:#FFF4C2;--surface:#FFFFFF;--ink:#17150F;--muted:#6B6248;--line:#E8D88E;--pink:#17150F;--pink-ink:#FFD60A;--mint:#E85D04;--chip:#F7E7A3;--warn:#C1121F;
+  --notes:repeating-linear-gradient(135deg,rgba(23,21,15,.035) 0 14px,transparent 14px 28px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body.mode-x{--bg:#15130C;--surface:#221F14;--ink:#FFF3C4;--muted:#B9AD82;--line:#3D3721;--pink:#FFD60A;--pink-ink:#15130C;--mint:#FF8C42;--chip:#2E2919;--warn:#FF6B6B;
+  --notes:repeating-linear-gradient(135deg,rgba(255,214,10,.035) 0 14px,transparent 14px 28px)}}
+body.mode-x{background:var(--bg) var(--notes) fixed}
+body.mode-x .play{box-shadow:none}
+body.mode-x .rv-card.win{box-shadow:0 0 0 3px #FFD60A,0 18px 40px rgba(0,0,0,.35)}
+body.mode-x .rv-card.win .rv-who{color:#FFD60A}
+
+/* game switch + caution tape */
+.modesw{margin:0 0 10px}
+.modesw button{position:relative}
+.mdot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#E83E72;vertical-align:middle;margin-inline-start:4px}
+.tape{overflow:hidden;white-space:nowrap;margin:0 -18px 14px;padding:6px 0;background:repeating-linear-gradient(135deg,#FFD60A 0 18px,#17150F 18px 36px);transform:rotate(-1.2deg)}
+.tape span{display:inline-block;background:#FFD60A;color:#17150F;font-weight:800;font-size:13px;padding:2px 10px;margin-inline-start:30px;animation:tape 22s linear infinite}
+@keyframes tape{from{transform:translateX(0)}to{transform:translateX(50%)}}
+@media (prefers-reduced-motion:reduce){.tape span{animation:none}}
+
+/* situation, start card, writing */
+.xsit{background:var(--ink);color:var(--bg);border-radius:20px;padding:16px 18px;margin:6px 0 14px}
+.xsit small{display:block;font-weight:800;opacity:.75;font-size:13px}
+.xsit .display{font-size:34px;line-height:1.05;margin-top:4px;overflow-wrap:anywhere}
+.xsit .timg{margin:12px 0 0}
+.xready{text-align:center;padding:24px 18px}
+.xready .xbig{font-size:64px;line-height:1}
+.xready b{display:block;font-size:22px;margin:8px 0 4px}
+.xready p{color:var(--muted);margin:0 0 16px}
+.xready p b{display:inline;font-size:inherit;color:var(--ink)}
+.xwrite{text-align:center}
+.xtimer{font-family:"Karantina",system-ui,sans-serif;font-weight:700;font-size:84px;line-height:1;margin:-4px 0 6px;color:var(--ink)}
+.xtimer.hot{color:var(--warn);animation:xhot .5s ease-in-out infinite alternate}
+@keyframes xhot{to{transform:scale(1.08)}}
+@media (prefers-reduced-motion:reduce){.xtimer.hot{animation:none}}
+.xta{min-height:130px;font-size:18px;text-align:right}
+
+/* excuse cards, results, reveal */
+.xquote{position:relative;background:var(--chip);border-radius:14px;padding:12px 14px 12px 14px;font-size:17px;font-weight:600;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:6px}
+.xquote::before{content:"“";position:absolute;top:-14px;inset-inline-start:8px;font-family:Georgia,serif;font-size:46px;color:var(--mint);line-height:1}
+.xcard{padding-top:16px}
+.xcard::before{background:repeating-linear-gradient(135deg,#FFD60A 0 10px,#17150F 10px 20px)}
+.xcard .stag{margin:0 0 4px}
+.res.xres{grid-template-columns:30px 1fr auto}
+.res.xres .sub{grid-column:2 / 4}
+.res.xres .xquote{font-size:15px}
+.xrv{width:80px;height:80px;border-radius:16px;background:#FFD60A;display:flex;align-items:center;justify-content:center;font-size:44px}
+.rv-info .t{font-size:16px}

@@ -3,9 +3,21 @@
 /* ---------- scoring ---------- */
 /* Rating scale of a round: rounds created from v1.0.11 use 1-10, older rounds stay 1-5. */
 const scaleOf = r => (r && r.scale === 10) ? 10 : 5;
+/* ---------- excuse-game helpers ---------- */
+const timerOf = r => (r && r.timer) || 90;
+const myStartLocal = {}; // rid -> when this device started writing (so the countdown ignores phone-clock drift)
+const xText = p => String((p && p.text) || '').trim();
+const xStart = (p, r) => (p && (myStartLocal[r.id] || p.startedMs)) || 0;
+const xDeadline = (p, r) => { const s = xStart(p, r); return s ? s + timerOf(r) * 1000 : 0 };
+const xExpired = (p, r) => { const dl = xDeadline(p, r); return !!dl && now() >= dl };
+const xDone = (p, r) => !!xText(p) && (!!p.locked || xExpired(p, r));
+/* The entries that take part in a round: every song pick, or every excuse that has text. */
+const entriesOf = r => S.picks.filter(p => p.rid === r.id && (!isX(r) || xText(p)));
 function roundData(r) {
-  const sc = scaleOf(r);
-  const picks = S.picks.filter(p => p.rid === r.id);
+  const sc = scaleOf(r), xr = isX(r);
+  const picks = entriesOf(r);
+  // a rating counts when it is complete: both metrics for songs, the one "how funny" metric for excuses
+  const val = v => xr ? (v && v.fun ? { fit: v.fun, fun: v.fun } : null) : (v && v.fit && v.fun ? v : null);
   const by = {}, gs = {};
   const bt = {};
   S.ratings.filter(x => x.rid === r.id).forEach(x => { by[x.uid] = x.scores || {}; gs[x.uid] = x.guesses || {}; if (x.bet) bt[x.uid] = x.bet });
@@ -14,9 +26,9 @@ function roundData(r) {
   picks.forEach(p => songKeys(p).forEach(k => (keyMap[k] = keyMap[k] || new Set()).add(p.uid)));
   const rows = picks.map(p => {
     const got = [];
-    for (const [ru, sc] of Object.entries(by)) { if (ru === p.uid) continue; const v = sc[p.uid]; if (v && v.fit && v.fun) got.push(v) }
+    for (const [ru, sc] of Object.entries(by)) { if (ru === p.uid) continue; const v = val(sc[p.uid]); if (v) got.push(v) }
     const mine = by[p.uid] || {};
-    const complete = picks.filter(q => q.uid !== p.uid).every(q => mine[q.uid] && mine[q.uid].fit && mine[q.uid].fun);
+    const complete = picks.filter(q => q.uid !== p.uid).every(q => !!val(mine[q.uid]));
     const n = got.length;
     const fit = n ? got.reduce((a, v) => a + v.fit, 0) / n : 0, fun = n ? got.reduce((a, v) => a + v.fun, 0) / n : 0;
     // song points are always out of 10: (fit + fun) on a 1-5 round, their average on a 1-10 round
@@ -47,7 +59,14 @@ function roundData(r) {
   rows.forEach(x => { x.bets = betOn[x.uid] || 0 });
   return { rows, bonus, made, betBonus, betMade, funny: funnyOf(r), scale: sc };
 }
-const doneRounds = () => S.rounds.filter(r => phase(r) === 'done');
+const doneRounds = m => S.rounds.filter(r => phase(r) === 'done' && inMode(r, m));
+/* Does this round still wait for something from me? (used to sort the home list and flag the other game) */
+function needsMe(r) {
+  const ph = phase(r), mp = S.picks.find(p => p.rid === r.id && p.uid === me), mr = S.ratings.find(x => x.rid === r.id && x.uid === me);
+  if (ph === 'pick') return isX(r) ? (!mp || (!xDone(mp, r) && !xExpired(mp, r))) : (!mp || !mp.locked);
+  if (ph === 'rate') return entriesOf(r).some(p => p.uid !== me) && (!mr || !mr.locked);
+  return false;
+}
 function aggregate(rounds) {
   const P = {};
   const g = u => P[u] || (P[u] = { uid: u, pts: 0, bonus: 0, wins: 0, played: 0, fitSum: 0, fitN: 0, funSum: 0, funN: 0, gMade: 0, gOnRight: 0, gOnTot: 0, hive: 0, bet: 0, betMade: 0 });
@@ -78,6 +97,14 @@ function maxBy(arr, f, cond) {
 function titles() {
   const done = doneRounds(), ws = weekStart();
   const A = Object.values(aggregate(done).P), wk = aggregate(done.filter(r => r.rateEnds >= ws)), W = Object.values(wk.P);
+  if (gameMode === 'excuse') return [
+    { ic: '👑', n: 'אלוף התירוצים', d: 'מקום ראשון השבוע', u: maxBy(W, t => t.total, t => t.total > 0) },
+    { ic: '💀', n: 'התירוץ הכי שקוף', d: wk.flop ? 'הכי מעט נקודות השבוע' : 'התירוץ עם הכי מעט נקודות השבוע', u: wk.flop ? [wk.flop.uid] : [] },
+    { ic: '🤥', n: 'עורך הדין', d: 'הכי הרבה ניצחונות בכל הזמנים', u: maxBy(A, t => t.wins, t => t.wins > 0) },
+    { ic: '😂', n: 'הקומיקאי', d: 'ממוצע "כמה זה מצחיק" הכי גבוה', u: maxBy(A, t => t.funSum / t.funN, t => t.funN > 0) },
+    { ic: '🕵️', n: 'Unpredictable', d: 'הכי קשה לנחש מה הוא כתב', u: maxBy(A, t => 1 - t.gOnRight / t.gOnTot, t => t.gOnTot >= 3) },
+    { ic: '🔮', n: 'Mind Reader', d: 'הכי הרבה ניחושים נכונים', u: maxBy(A, t => t.bonus, t => t.bonus > 0) }
+  ];
   return [
     { ic: '👑', n: 'Weekly Champion', d: 'מקום ראשון השבוע', u: maxBy(W, t => t.total, t => t.total > 0) },
     { ic: '💀', n: 'Flop of the Week', d: wk.flop ? 'הכי מעט נקודות השבוע: ' + wk.flop.title : 'השיר עם הכי מעט נקודות השבוע', u: wk.flop ? [wk.flop.uid] : [] },
@@ -89,10 +116,10 @@ function titles() {
   ];
 }
 function streak(uid) {
-  const rs = S.rounds.slice().sort((a, b) => b.createdAt - a.createdAt);
+  const rs = S.rounds.filter(r => inMode(r)).sort((a, b) => b.createdAt - a.createdAt);
   let s = 0;
   for (const r of rs) {
-    if (S.picks.some(p => p.rid === r.id && p.uid === uid)) { s++; continue }
+    if (entriesOf(r).some(p => p.uid === uid)) { s++; continue }
     if (s === 0 && phase(r) === 'pick') continue;
     break;
   }
@@ -103,12 +130,16 @@ const inactiveSet = () => new Set(S.settings.inactive || []);
 const activeIds = () => { const x = inactiveSet(); return Object.keys(S.players).filter(u => !x.has(u)) };
 function roundStatus(r) {
   const ph = phase(r), act = activeIds();
-  const picks = S.picks.filter(p => p.rid === r.id), rats = S.ratings.filter(x => x.rid === r.id);
+  const xr = isX(r), picks = xr && ph !== 'pick' ? entriesOf(r) : S.picks.filter(p => p.rid === r.id), rats = S.ratings.filter(x => x.rid === r.id);
   const seen = u => !!(S.players[u] && S.players[u].seen && S.players[u].seen[r.id]);
   if (ph === 'pick') {
-    const st = u => { const p = picks.find(x => x.uid === u); if (p) return p.locked ? 'locked' : 'draft'; return seen(u) ? 'seen' : 'none' };
+    const st = xr
+      ? u => { const p = picks.find(x => x.uid === u); if (p) return xDone(p, r) ? 'locked' : xExpired(p, r) ? 'seen' : 'draft'; return seen(u) ? 'seen' : 'none' }
+      : u => { const p = picks.find(x => x.uid === u); if (p) return p.locked ? 'locked' : 'draft'; return seen(u) ? 'seen' : 'none' };
     const ids = [...new Set([...act, ...picks.map(p => p.uid)])];
-    const groups = [['locked', '🔒', 'נעלו'], ['draft', '✏️', 'בטיוטה'], ['seen', '👀', 'נכנסו ועוד לא בחרו'], ['none', '💤', 'עוד לא נכנסו']].map(([k, ic, l]) => ({ ic, l, u: ids.filter(u => st(u) === k) }));
+    const labels = xr ? [['locked', '🔒', 'שלחו תירוץ'], ['draft', '⏱️', 'כותבים עכשיו'], ['seen', '👀', 'נכנסו ועוד לא כתבו'], ['none', '💤', 'עוד לא נכנסו']]
+      : [['locked', '🔒', 'נעלו'], ['draft', '✏️', 'בטיוטה'], ['seen', '👀', 'נכנסו ועוד לא בחרו'], ['none', '💤', 'עוד לא נכנסו']];
+    const groups = labels.map(([k, ic, l]) => ({ ic, l, u: ids.filter(u => st(u) === k) }));
     const n = act.filter(u => st(u) === 'locked').length;
     return { groups, all: act.length > 0 && n === act.length, short: `🔒 ${n}/${act.length}`, ph };
   }
@@ -119,8 +150,12 @@ function roundStatus(r) {
   const n = pickers.filter(u => st(u) === 'locked').length;
   return { groups, all: pickers.length > 0 && n === pickers.length, short: `🔒 ${n}/${pickers.length}`, ph, pickers: new Set(pickers) };
 }
-function fallbackTopic(seed) {
+function fallbackTopic(seed, m) {
   const used = new Set(S.rounds.map(r => r.topic));
+  if ((m || gameMode) === 'excuse') {
+    const pool = XSUGGEST.filter(s => !used.has(s.t)), list = pool.length ? pool : XSUGGEST;
+    return { topic: list[hash(seed) % list.length].t, mode: 'excuse', funny: true, metric2: 'כמה זה מצחיק' };
+  }
   const pool = SUGGEST.filter(s => !used.has(s.t)), list = pool.length ? pool : SUGGEST;
   const s = list[hash(seed) % list.length];
   return { topic: s.t, metric2: s.m, funny: s.f };
@@ -129,8 +164,8 @@ function fallbackTopic(seed) {
 function buildLog(r) {
   const d = roundData(r);
   return {
-    rid: r.id, topic: r.topic, metric2: m2of(r), funny: funnyOf(r), scale: scaleOf(r), img: r.img || '', createdAt: r.createdAt, pickEnds: r.pickEnds, rateEnds: r.rateEnds, loggedAt: now(),
-    results: d.rows.map((x, i) => ({ rank: i + 1, uid: x.uid, nick: nameOf(x.uid), title: x.title, artist: x.artist || '', url: x.url || '', artwork: x.artwork || '', source: x.source || 'manual', locked: !!x.locked,
+    rid: r.id, mode: modeOf(r), topic: r.topic, metric2: isX(r) ? 'כמה זה מצחיק' : m2of(r), funny: funnyOf(r), scale: scaleOf(r), img: r.img || '', createdAt: r.createdAt, pickEnds: r.pickEnds, rateEnds: r.rateEnds, loggedAt: now(),
+    results: d.rows.map((x, i) => ({ rank: i + 1, uid: x.uid, nick: nameOf(x.uid), title: x.title || '', text: x.text || '', artist: x.artist || '', url: x.url || '', artwork: x.artwork || '', source: x.source || 'manual', locked: !!x.locked,
       fit: r1(x.fit), fun: r1(x.fun), raters: x.n, pts: x.pts, complete: x.complete, guessedRight: x.gRight, guessedTotal: x.gTot, hive: x.hive })),
     bonus: Object.entries(d.bonus).map(([u, c]) => ({ uid: u, nick: nameOf(u), bonus: c })),
     betWinners: Object.keys(d.betBonus).map(u => ({ uid: u, nick: nameOf(u) })),
@@ -139,13 +174,13 @@ function buildLog(r) {
       guesses: Object.entries(x.guesses || {}).map(([u, g]) => ({ song: nameOf(u), guess: nameOf(g), right: u === g })) }))
   };
 }
-const queue = () => S.topics.filter(t => t.status === 'approved').sort((a, b) => (a.order || 0) - (b.order || 0));
-const pendingTopics = () => S.topics.filter(t => t.status === 'pending').sort((a, b) => a.createdAt - b.createdAt);
-function startOf(d) { const x = new Date(d); x.setHours(S.settings.startHour, 0, 0, 0); return x.getTime() }
-function nextAutoTime() {
-  const t = new Date(), id = dayId(t);
-  if (S.rounds.some(r => r.id === id) || now() >= startOf(t)) { const n = new Date(t); n.setDate(n.getDate() + 1); return startOf(n) }
-  return startOf(t);
+const queue = m => S.topics.filter(t => t.status === 'approved' && inMode(t, m)).sort((a, b) => (a.order || 0) - (b.order || 0));
+const pendingTopics = m => S.topics.filter(t => t.status === 'pending' && inMode(t, m)).sort((a, b) => a.createdAt - b.createdAt);
+function startOf(d, m) { const x = new Date(d); x.setHours(setOf(m).startHour, 0, 0, 0); return x.getTime() }
+function nextAutoTime(m) {
+  const t = new Date(), id = dayId(t, m || gameMode);
+  if (S.rounds.some(r => r.id === id) || now() >= startOf(t, m)) { const n = new Date(t); n.setDate(n.getDate() + 1); return startOf(n, m) }
+  return startOf(t, m);
 }
 const hasHeb = s => /[\u0590-\u05FF]/.test(s || '');
 const hasLat = s => /[A-Za-z]/.test(s || '');
@@ -166,16 +201,17 @@ function reminderText(r) {
   const t = roundStatus(r), ph = phase(r);
   const left = fmtLeft((ph === 'pick' ? r.pickEnds : r.rateEnds) - now());
   // a saved song counts as done; in rating, a saved rating of every song counts as done
-  const picks = S.picks.filter(p => p.rid === r.id);
+  const picks = entriesOf(r), xr = isX(r), w = W(modeOf(r));
   const ratedAll = u => { const x = S.ratings.find(y => y.rid === r.id && y.uid === u), sc = (x && x.scores) || {};
-    return !!x && picks.filter(p => p.uid !== u).every(p => sc[p.uid] && sc[p.uid].fit && sc[p.uid].fun) };
+    return !!x && picks.filter(p => p.uid !== u).every(p => sc[p.uid] && sc[p.uid].fun && (xr || sc[p.uid].fit)) };
   const miss = ph === 'pick'
     ? t.groups.filter(g => g.ic === '👀' || g.ic === '💤').flatMap(g => g.u)
     : [...t.pickers].filter(u => !ratedAll(u));
-  const lines = ['🎧 *PeakTheVibe*', '', '*' + r.topic + '*', ...(r.img ? ['🖼️ הנושא הפעם הוא תמונה, נכנסים לראות'] : []),
-    ph === 'pick' ? `⏰ נשארו ${left} לבחור שיר!` : `⭐ נשארו ${left} לדרג את השירים!`];
-  if (miss.length) lines.push('', (ph === 'pick' ? 'עוד לא בחרו שיר: ' : 'עוד לא דירגו את כל השירים: ') + miss.map(nameOf).join(', '));
-  if (ph === 'rate') lines.push('', 'זוכרים: מי שבחר שיר ולא דירג את כולם מקבל 0 🙃');
+  const hide = xr && ph === 'pick'; // the excuse situation stays secret until each player starts
+  const lines = [xr ? '🙊 *PeakTheVibe: משחק התירוצים*' : '🎧 *PeakTheVibe*', '', '*' + (hide ? 'מצב מביך חדש מחכה לכם' : r.topic) + '*', ...(r.img && !hide ? ['🖼️ הנושא הפעם הוא תמונה, נכנסים לראות'] : []),
+    ph === 'pick' ? (xr ? `⏰ נשארו ${left} לכתוב תירוץ! (${timerOf(r)} שניות מהרגע שמתחילים)` : `⏰ נשארו ${left} לבחור שיר!`) : `⭐ נשארו ${left} לדרג את ה${w.items}!`];
+  if (miss.length) lines.push('', (ph === 'pick' ? (xr ? 'עוד לא כתבו: ' : 'עוד לא בחרו שיר: ') : `עוד לא דירגו את כל ה${w.items}: `) + miss.map(nameOf).join(', '));
+  if (ph === 'rate') lines.push('', `זוכרים: מי ששלח ${w.item} ולא דירג את כולם מקבל 0 🙃`);
   lines.push('', '👇 ' + GAME_URL);
   return lines.join('\n');
 }
@@ -201,10 +237,11 @@ const dm = t => new Date(t).toLocaleDateString('he-IL', { day: 'numeric', month:
 const weekLabel = s => dm(s.from) + ' עד ' + dm(s.to - 864e5 / 2);
 function weeklyText(s) {
   const medals = ['🥇', '🥈', '🥉'];
-  const L = ['🎧 *PeakTheVibe: סיכום השבוע*', weekLabel(s) + ', ' + s.rounds + ' סבבים, ' + s.songs + ' שירים', ''];
+  const w = W(), xr = gameMode === 'excuse';
+  const L = [(xr ? '🙊 *PeakTheVibe: סיכום שבוע התירוצים*' : '🎧 *PeakTheVibe: סיכום השבוע*'), weekLabel(s) + ', ' + s.rounds + ' סבבים, ' + s.songs + ' ' + w.items, ''];
   s.rows.slice(0, 3).forEach((t, i) => L.push(`${medals[i]} ${nameOf(t.uid)}: ${t.total} נק׳`));
-  if (s.best) L.push('', `🎵 השיר של השבוע: ${s.best.title}${s.best.artist ? ' / ' + s.best.artist : ''} (${nameOf(s.best.uid)}, ${s.best.pts} נק׳)`);
-  if (s.flop) L.push(`💀 Flop: ${s.flop.title} (${nameOf(s.flop.uid)}, ${s.flop.pts} נק׳)`);
+  if (s.best) L.push('', xr ? `🤥 התירוץ של השבוע: "${s.best.text}" (${nameOf(s.best.uid)}, ${s.best.pts} נק׳)` : `🎵 השיר של השבוע: ${s.best.title}${s.best.artist ? ' / ' + s.best.artist : ''} (${nameOf(s.best.uid)}, ${s.best.pts} נק׳)`);
+  if (s.flop) L.push(xr ? `💀 התירוץ הכי שקוף: "${s.flop.text}" (${nameOf(s.flop.uid)}, ${s.flop.pts} נק׳)` : `💀 Flop: ${s.flop.title} (${nameOf(s.flop.uid)}, ${s.flop.pts} נק׳)`);
   if (s.guesser) L.push(`🔮 הכי הרבה ניחושים נכונים: ${s.guesser.u.map(nameOf).join(', ')} (${s.guesser.n})`);
   L.push('', '👇 ' + GAME_URL);
   return L.join('\n');
