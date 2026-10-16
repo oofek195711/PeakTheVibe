@@ -1,4 +1,4 @@
-/* PeakTheVibe: the excuse game (🙊 תירוצים).
+/* PeakTheVibe: the situations game (🎭 סיטואציות).
    Same engine as the song game (rounds, locking, tracking, guesses, bets, reveal),
    with its own screens. Each player gets a personal timer to write, starting the moment
    they tap "start"; the situation stays hidden until then. Loaded after ui.js. */
@@ -6,7 +6,7 @@
 const xQuote = t => `<div class="xquote">${esc(t)}</div>`;
 const xClip = (t, n) => { t = String(t || ''); return t.length > n ? t.slice(0, n - 1) + '…' : t };
 function xSituation(r) {
-  return `<div class="xsit"><small>🙊 המצב המביך</small><div class="display">${esc(r.topic)}</div>${topicImgHtml(r)}</div>`;
+  return `<div class="xsit"><small>🎭 הסיטואציה</small><div class="display">${esc(r.topic)}</div>${topicImgHtml(r)}<div class="xask">מה אתה אומר?</div></div>`;
 }
 function xSlider(tok, val, locked) {
   const pct = val ? (val - 1) / 9 : 0.5;
@@ -30,26 +30,26 @@ function excuseRoundView(r) {
   let h = `<button class="back" data-act="go" data-v="home">→ כל הסבבים</button>`;
   if (ph === 'pick') {
     markSeen(r.id);
-    h += `<div class="clock">נשארו <b data-ends="${r.pickEnds}">${fmtLeft(r.pickEnds - now())}</b> לשליחת תירוצים. ${entries.length} כבר שלחו.</div>`;
+    h += `<div class="clock">נשארו <b data-ends="${r.pickEnds}">${fmtLeft(r.pickEnds - now())}</b> לשליחת משפטים. ${entries.length} כבר שלחו.</div>`;
     if (!mine) {
-      h += `<div class="panel xready"><div class="xbig">🙊</div><b>מצב מביך מחכה לך</b>
-        <p>יש לך <b>${timerOf(r)} שניות</b> להמציא את התירוץ הכי מצחיק. המצב ייחשף רק כשתלחצו "התחל", והשעון לא עוצר, גם אם יוצאים מהמשחק.</p>
+      h += `<div class="panel xready"><div class="xbig">🎭</div><b>סיטואציה מחכה לך</b>
+        <p>יש לך <b>${timerOf(r)} שניות</b> לכתוב מה הכי מצחיק להגיד בה. הסיטואציה תיחשף רק כשתלחצו "התחל", והשעון לא עוצר, גם אם יוצאים מהמשחק.</p>
         <button class="btn block" data-act="xstart" ${busy ? 'disabled' : ''}>⏱️ התחל</button></div>`;
     } else if (xDone(mine, r) || xExpired(mine, r)) {
       const t = xText(mine);
       h += xSituation(r) + (t
-        ? `<div class="panel lockcard"><div class="lk">🔒</div><b>התירוץ שלך נשלח</b>${xQuote(t)}</div>`
-        : `<div class="panel lockcard"><div class="lk">⌛</div><b>הזמן נגמר</b><p class="muted" style="margin:6px 0 0">לא נשלח תירוץ, אז לא תשתתפו בסבב הזה. בשלב הבא עדיין אפשר לדרג ולנחש.</p></div>`);
+        ? `<div class="panel lockcard"><div class="lk">🔒</div><b>המשפט שלך נשלח</b>${xQuote(t)}</div>`
+        : `<div class="panel lockcard"><div class="lk">⌛</div><b>הזמן נגמר</b><p class="muted" style="margin:6px 0 0">לא נשלח משפט, אז לא תשתתפו בסבב הזה. בשלב הבא עדיין אפשר לדרג ולנחש.</p></div>`);
     } else {
       const k = 'xt:' + r.id, d = draft(k, () => ({ t: mine.text || '' }));
       const left = Math.max(0, xDeadline(mine, r) - now());
       h += xSituation(r) + `<div class="panel xwrite"><div class="xtimer ${left < 10500 ? 'hot' : ''}" data-xcount="${esc(r.id)}">${Math.ceil(left / 1000)}</div>
-        <textarea class="field xta" data-f="${k}.t" data-xtext="${esc(r.id)}" maxlength="280" placeholder="התירוץ שלך…">${esc(d.t)}</textarea>
+        <textarea class="field xta" data-f="${k}.t" data-xtext="${esc(r.id)}" maxlength="280" placeholder="מה אתה אומר?…">${esc(d.t)}</textarea>
         <button class="btn block" data-act="xsend" ${busy ? 'disabled' : ''}>שלח 🔒</button>
         <p class="hint" style="margin:8px 0 0">נשמר תוך כדי הקלדה. כשהזמן נגמר, מה שכתוב נשלח לבד.</p></div>`;
     }
     h += xAdminTools(r, ph, entries);
-    h += `<p class="hint" style="margin-top:14px">בשלב הדירוג התירוצים מוצגים בלי שמות. מדרגים כמה הם מצחיקים, מנחשים מי כתב, ומהמרים על המנצח.</p>`;
+    h += `<p class="hint" style="margin-top:14px">בשלב הדירוג המשפטים מוצגים בלי שמות. מדרגים כמה הם מצחיקים, מנחשים מי כתב, ומהמרים על המנצח.</p>`;
   }
   else if (ph === 'rate') {
     h += xSituation(r);
@@ -64,14 +64,14 @@ function excuseRoundView(r) {
     const doneN = others.filter(p => d.scores[p.uid] && d.scores[p.uid].fun).length;
     const locked = !!sd.locked, dis = locked ? 'disabled' : '';
     const dirty = JSON.stringify(d) !== JSON.stringify(saved);
-    h += `<div class="clock">נשארו <b data-ends="${r.rateEnds}">${fmtLeft(r.rateEnds - now())}</b> לדירוג. מי ששלח תירוץ ולא דירג את כולם לא מקבל נקודות.</div>`;
+    h += `<div class="clock">נשארו <b data-ends="${r.rateEnds}">${fmtLeft(r.rateEnds - now())}</b> לדירוג. מי ששלח משפט ולא דירג את כולם לא מקבל נקודות.</div>`;
     if (locked) h += `<div class="banner">🔒 הדירוג שלך נעול. התוצאות ייחשפו בסוף הזמן.</div>`;
-    if (!order.length) h += `<p class="muted">אף אחד לא שלח תירוץ בסבב הזה.</p>`;
+    if (!order.length) h += `<p class="muted">אף אחד לא שלח משפט בסבב הזה.</p>`;
     h += order.map(p => {
-      if (p.uid === me) return xCard(p, { self: true, tag: 'התירוץ שלך, לא מדרגים אותו' });
+      if (p.uid === me) return xCard(p, { self: true, tag: 'המשפט שלך, לא מדרגים אותו' });
       const tok = songTok(r.id, p.uid), v = d.scores[p.uid] || {};
       const gs = cands.length > 1 ? `<div class="scale"><span>🕵️ מי כתב? (בונוס)</span><div class="chips guess">${cands.map(u => `<button class="${d.guesses[p.uid] === u ? 'on' : ''}" data-act="guess" data-u="${tok}" data-g="${esc(u)}" ${dis}>${withAv(u, 'xxs')}</button>`).join('')}</div></div>` : '';
-      const bet = others.length >= 2 ? `<button class="betbtn ${d.bet === p.uid ? 'on' : ''}" data-act="bet" data-u="${tok}" ${dis}>${d.bet === p.uid ? '🎰 הימרת שהתירוץ הזה ינצח' : '🎰 להמר שהתירוץ הזה ינצח (+1)'}</button>` : '';
+      const bet = others.length >= 2 ? `<button class="betbtn ${d.bet === p.uid ? 'on' : ''}" data-act="bet" data-u="${tok}" ${dis}>${d.bet === p.uid ? '🎰 הימרת שהמשפט הזה ינצח' : '🎰 להמר שהמשפט הזה ינצח (+1)'}</button>` : '';
       return xCard(p, { tag: v.fun ? '✓ דורג' : '', body: `<div class="rates"><div class="scale"><span>😂 כמה זה מצחיק</span>${xSlider(tok, v.fun || 0, locked)}</div>${gs}${bet}</div>` });
     }).join('');
     h += xAdminTools(r, ph, entries);
@@ -81,7 +81,7 @@ function excuseRoundView(r) {
   else {
     h += xSituation(r);
     const rd = roundData(r), rows = rd.rows;
-    if (!rows.length) return h + `<p class="muted">אף אחד לא שלח תירוץ בסבב הזה.</p>` + (isAdmin() ? `<div class="row-actions"><button class="btn ghost block danger" data-act="delround">🗑️ מחק את הסבב</button></div>` : '');
+    if (!rows.length) return h + `<p class="muted">אף אחד לא שלח משפט בסבב הזה.</p>` + (isAdmin() ? `<div class="row-actions"><button class="btn ghost block danger" data-act="delround">🗑️ מחק את הסבב</button></div>` : '');
     h += `<button class="btn ghost block" data-act="replay" style="margin-bottom:14px">🎬 לצפות בחשיפה שוב</button>`;
     maybeReveal(r);
     const top = rows[0].pts;
@@ -90,8 +90,8 @@ function excuseRoundView(r) {
     const b = Object.entries(rd.bonus).sort((a, c) => c[1] - a[1]);
     h += `<h2>בונוס ניחושים</h2>` + (b.length ? b.map(([u, c]) => `<div class="qrow"><div class="qt">${esc(nameOf(u))}</div><b>+${c}</b></div>`).join('') : `<p class="muted">אף אחד לא ניחש נכון הפעם.</p>`);
     if (Object.keys(rd.betMade).length) { const bw = Object.keys(rd.betBonus);
-      h += `<h2>הימור על המנצח</h2>` + (bw.length ? bw.map(u => `<div class="qrow"><div class="qt">${esc(nameOf(u))}</div><b>+1</b></div>`).join('') : `<p class="muted">אף אחד לא הימר על התירוץ המנצח.</p>`) }
-    h += `<p class="hint" style="margin-top:12px">ניקוד תירוץ: ממוצע "כמה זה מצחיק" מכל המדרגים, מ-1 עד 10. כל ניחוש נכון והימור נכון: נקודה נוספת.</p>`;
+      h += `<h2>הימור על המנצח</h2>` + (bw.length ? bw.map(u => `<div class="qrow"><div class="qt">${esc(nameOf(u))}</div><b>+1</b></div>`).join('') : `<p class="muted">אף אחד לא הימר על המשפט המנצח.</p>`) }
+    h += `<p class="hint" style="margin-top:12px">ניקוד משפט: ממוצע "כמה זה מצחיק" מכל המדרגים, מ-1 עד 10. כל ניחוש נכון והימור נכון: נקודה נוספת.</p>`;
   }
   if (isAdmin()) h += `<div class="row-actions"><button class="btn ghost block danger" data-act="delround">🗑️ מחק את הסבב</button></div>`;
   return h;
@@ -108,7 +108,7 @@ async function xFinish(r, auto) {
   clearTimeout(xSaveTimer);
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   try {
-    if (text) { await db.doc('picks/' + r.id + '__' + me).update({ text, locked: true, lockedAt: now(), at: now() }); toast(auto ? '⌛ הזמן נגמר! התירוץ נשלח 🔒' : 'התירוץ נשלח 🔒') }
+    if (text) { await db.doc('picks/' + r.id + '__' + me).update({ text, locked: true, lockedAt: now(), at: now() }); toast(auto ? '⌛ הזמן נגמר! המשפט נשלח 🔒' : 'המשפט נשלח 🔒') }
     else if (auto) toast('⌛ הזמן נגמר');
   } catch (e) { toast('השליחה לא הצליחה. בדקו חיבור לאינטרנט.'); xFinishing[r.id] = 0 }
   render();
@@ -132,7 +132,7 @@ setInterval(() => {
   if (left <= 0) xFinish(r, true);
 }, 250);
 
-/* One-time "what's new" popup announcing the excuse game. Shown once per device, on the home screen,
+/* One-time "what's new" popup announcing the situations game. Shown once per device, on the home screen,
    before the weekly summary. Lives in its own #news layer, outside #app. */
 const NEWS_KEY = 'ptv_news_x1';
 let newsOn = false;
@@ -143,18 +143,18 @@ function maybeNews() {
   newsOn = true;
   const xr = S.rounds.find(r => isX(r) && phase(r) !== 'done' && r.createdAt <= now());
   el.innerHTML = `<div class="nw-card" role="dialog" aria-modal="true" aria-labelledby="nw-t">
-    <div class="tape nw-tape"><span>🙊 חדש · משחק התירוצים · חדש · משחק התירוצים · חדש · משחק התירוצים</span></div>
-    <div class="nw-big">🙊</div>
+    <div class="tape nw-tape"><span>🎭 חדש · משחק הסיטואציות · חדש · משחק הסיטואציות · חדש · משחק הסיטואציות</span></div>
+    <div class="nw-big">🎭</div>
     <div class="pill nw-pill">חדש ב־PeakTheVibe</div>
-    <h2 class="display" id="nw-t">משחק התירוצים</h2>
-    <p class="nw-lead">כל יום מצב מביך חדש. אתם צריכים להמציא תירוץ, והכי מצחיק מנצח. לא הכי אמין 😅</p>
+    <h2 class="display" id="nw-t">משחק הסיטואציות</h2>
+    <p class="nw-lead">כל יום סיטואציה חדשה: הספד, ראיון עבודה, פגישה עם המשפחה של החברה… כותבים מה הייתם אומרים, והכי מצחיק מנצח 😅</p>
     <ul class="nw-list">
-      <li><b>⏱️</b><span>המצב נחשף רק כשלוחצים "התחל", ומשם יש לכם זמן מוגבל לכתוב</span></li>
-      <li><b>😂</b><span>מדרגים כמה כל תירוץ מצחיק, מנחשים מי כתב ומהמרים על המנצח</span></li>
+      <li><b>⏱️</b><span>הסיטואציה נחשפת רק כשלוחצים "התחל", ומשם יש לכם זמן מוגבל לכתוב</span></li>
+      <li><b>😂</b><span>מדרגים כמה כל משפט מצחיק, מנחשים מי כתב ומהמרים על המנצח</span></li>
       <li><b>🏆</b><span>מובילים ותארים משלו, בנפרד ממשחק השירים</span></li>
       <li><b>🔀</b><span>עוברים בין המשחקים במתג למעלה</span></li>
     </ul>
-    <button class="btn block" data-nw="go">${xr ? 'לתירוץ של היום ←' : 'יאללה, בואו ננסה ←'}</button>
+    <button class="btn block" data-nw="go">${xr ? 'לסיטואציה של היום ←' : 'יאללה, בואו ננסה ←'}</button>
     <button class="btn ghost block" data-nw="close">אחר כך</button>
   </div>`;
   el.hidden = false; document.body.classList.add('nw-open');

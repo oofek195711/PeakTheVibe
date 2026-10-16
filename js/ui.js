@@ -34,8 +34,8 @@ function playlistHead(picks) {
 function trackerHtml(r) {
   const t = roundStatus(r);
   return `<div class="track"><div class="tcount">${t.groups.map(g => `<span>${g.ic} ${g.u.length}</span>`).join('')}</div>
-  ${t.groups.filter(g => g.u.length).map(g => `<div class="tg"><small>${g.ic} ${g.l}</small><div>${g.u.map(u => esc(nameOf(u)) + (t.ph === 'rate' && !t.pickers.has(u) ? ` <span class="muted">(${isX(r) ? 'לא שלח/ה תירוץ' : 'לא בחר/ה שיר'})</span>` : '')).join(', ')}</div></div>`).join('')}
-  ${t.ph === 'rate' ? `<p class="hint" style="margin:6px 0 0">"כולם נעלו" נבדק רק אצל מי ש${isX(r) ? 'שלח תירוץ' : 'בחר שיר'}.</p>` : ''}
+  ${t.groups.filter(g => g.u.length).map(g => `<div class="tg"><small>${g.ic} ${g.l}</small><div>${g.u.map(u => esc(nameOf(u)) + (t.ph === 'rate' && !t.pickers.has(u) ? ` <span class="muted">(${isX(r) ? 'לא שלח/ה משפט' : 'לא בחר/ה שיר'})</span>` : '')).join(', ')}</div></div>`).join('')}
+  ${t.ph === 'rate' ? `<p class="hint" style="margin:6px 0 0">"כולם נעלו" נבדק רק אצל מי ש${isX(r) ? 'שלח משפט' : 'בחר שיר'}.</p>` : ''}
   <div class="row-actions remind"><button class="btn" style="flex:1" data-act="remindwa" data-v="${esc(r.id)}">📣 שלח תזכורת בוואטסאפ</button><button class="btn ghost" data-act="remindcopy" data-v="${esc(r.id)}" aria-label="העתק תזכורת">📋</button></div></div>`;
 }
 function historyView() {
@@ -139,7 +139,7 @@ function helpView() {
   ${item('⭐', 'מדרגים', `אחרי זמן הבחירה יש ${st.rateHours} שעות לדרג. השירים מוצגים בלי שמות, וכל שיר מקבל ציון מ-1 עד 10 (גוררים את המחוון) בשני מדדים: 🎯 כמה מתאים לנושא, ו-✨ מדד שני שמשתנה בכל נושא. את השיר שלכם לא מדרגים.`)}
   <div class="hitem warn">${'<span class="hic">⚠️</span>'}<div><b>החוק הכי חשוב</b><p>בחרתם שיר? חייבים לדרג את כל השירים האחרים. אחרת השיר שלכם מקבל 0 בסבב.</p></div></div>
   ${item('🕵️', 'מנחשים מי בחר', 'ליד כל שיר בוחרים מי לדעתכם בחר אותו. כל ניחוש נכון שווה נקודת בונוס.')}
-  ${item('🙊', 'משחק התירוצים', 'בראש המסך עוברים בין 🎵 שירים ל-🙊 תירוצים. כל יום מצב מביך חדש. לוחצים "התחל", המצב נחשף, ויש סטופר קצר להמציא את התירוץ הכי מצחיק. אחר כך מדרגים כמה כל תירוץ מצחיק, מנחשים מי כתב ומהמרים על המנצח. מצחיק מנצח, לא אמין.')}
+  ${item('🎭', 'משחק הסיטואציות', 'בראש המסך עוברים בין 🎵 שירים ל-🎭 סיטואציות. כל יום סיטואציה חדשה, למשל הספד בהלוויה או ראיון עבודה. לוחצים "התחל", הסיטואציה נחשפת, ויש סטופר קצר לכתוב מה הייתם אומרים בה. אחר כך מדרגים כמה כל משפט מצחיק, מנחשים מי כתב ומהמרים על המנצח. הכי מצחיק מנצח.')}
   ${item('🎰', 'מהמרים על המנצח', 'בשלב הדירוג אפשר לסמן שיר אחד שלדעתכם ייקח את המקום הראשון (לא את שלכם). צדקתם? עוד נקודת בונוס.')}
   ${item('📅', 'סיכום שבועי', 'כל יום ראשון נפתח סיכום של השבוע שעבר: המובילים, השיר של השבוע וה-Flop. אפשר לצפות בו שוב במסך 🏆 מובילים.')}
   ${item('🏆', 'ניקוד ותארים', 'כל שיר מקבל את הממוצע של שני המדדים מכל המדרגים, עד 10 נקודות, ועוד בונוסים מניחושים. בלשונית 🏆 מובילים יש לוח שבועי (מיום ראשון), לוח של כל הזמנים, תארים מצחיקים ופרופיל לכל שחקן.')}
@@ -333,7 +333,7 @@ function metricPicker(key) {
 function modeSwitch() {
   const wait = m => S.rounds.some(r => inMode(r, m) && phase(r) !== 'done' && needsMe(r));
   const b = (m, l) => `<button class="${gameMode === m ? 'on' : ''}" data-act="setmode" data-v="${m}">${l}${gameMode !== m && wait(m) ? ' <i class="mdot"></i>' : ''}</button>`;
-  return `<div class="seg modesw">${b('song', '🎵 שירים')}${b('excuse', '🙊 תירוצים')}</div>` + (gameMode === 'excuse' ? `<div class="tape" aria-hidden="true"><span>🙊 משחק התירוצים · אין לחצות · התירוץ הכי מצחיק מנצח · 🙊 משחק התירוצים · אין לחצות · התירוץ הכי מצחיק מנצח</span></div>` : '');
+  return `<div class="seg modesw">${b('song', '🎵 שירים')}${b('excuse', '🎭 סיטואציות')}</div>` + (gameMode === 'excuse' ? `<div class="tape" aria-hidden="true"><span>🎭 משחק הסיטואציות · מה אתה אומר? · הכי מצחיק מנצח · 🎭 משחק הסיטואציות · מה אתה אומר? · הכי מצחיק מנצח</span></div>` : '');
 }
 function homeView() {
   const xm = gameMode === 'excuse', w = W(), set = setOf();
@@ -346,8 +346,8 @@ function homeView() {
   if (!isStandalone() && !installDismissed()) head += `<div class="instbar"><span>📲 <b>התקינו את PeakTheVibe</b><small>נפתח במסך מלא, עם אייקון במסך הבית.</small></span><button class="btn" data-act="install">התקנה</button><button class="instx" data-act="installx" aria-label="לא עכשיו">✕</button></div>`;
   head += modeSwitch();
   const nt = nextAutoTime();
-  const nextLine = `<p class="hint" style="margin:0 0 6px">${xm ? 'המצב המביך הבא' : 'הנושא הבא'} נפתח ${new Date(nt).toDateString() === new Date().toDateString() ? 'היום' : 'מחר'} ב-${hh(set.startHour)}.</p>`;
-  if (!mine.length) return head + `<div class="empty"><div class="display">${xm ? 'עוד אין מצב מביך' : 'עוד אין נושא'}</div><p class="muted">הסבב הראשון ייפתח לבד ב-${hh(set.startHour)}.</p></div>`;
+  const nextLine = `<p class="hint" style="margin:0 0 6px">${xm ? 'הסיטואציה הבאה' : 'הנושא הבא'} נפתח ${new Date(nt).toDateString() === new Date().toDateString() ? 'היום' : 'מחר'} ב-${hh(set.startHour)}.</p>`;
+  if (!mine.length) return head + `<div class="empty"><div class="display">${xm ? 'עוד אין סיטואציה' : 'עוד אין נושא'}</div><p class="muted">הסבב הראשון ייפתח לבד ב-${hh(set.startHour)}.</p></div>`;
   const row = r => {
     const ph = phase(r), entries = entriesOf(r);
     const myPick = S.picks.find(p => p.rid === r.id && p.uid === me), myRate = S.ratings.find(x => x.rid === r.id && x.uid === me);
@@ -380,7 +380,7 @@ function homeView() {
     }
     const cnt = isAdmin() && ph !== 'done' ? `<span class="adm">${roundStatus(r).short}</span>` : '';
     const lang = !xm && langOf(r) !== 'any' ? `<span class="langtag ${langOf(r)}">${LANGS[langOf(r)].ic} ${langOf(r) === 'he' ? 'עברית בלבד' : 'אנגלית בלבד'}</span>` : '';
-    const title = secret ? `<span class="display">🙊 מצב מביך מסתורי</span><span class="rmeta">ייחשף כשתתחילו. יש לכם ${timerOf(r)} שניות.</span>` : `${topicImgHtml(r, 'thumb')}<span class="display">${esc(r.topic)}</span>`;
+    const title = secret ? `<span class="display">🎭 סיטואציה מסתורית</span><span class="rmeta">תיחשף כשתתחילו. יש לכם ${timerOf(r)} שניות.</span>` : `${topicImgHtml(r, 'thumb')}<span class="display">${esc(r.topic)}</span>`;
     return `<button class="round rcard" style="--c:${c}" data-act="open" data-v="${esc(r.id)}">
       <span class="rinfo">${title}${lang}<span class="rmeta">${entries.length === 1 ? w.one : entries.length + ' ' + w.items}${cnt ? ' · ' + cnt : ''}</span><span class="rmeta">${time}</span></span>
       <span class="cta ${ctaCls}">${cta}</span></button>`;
@@ -399,13 +399,13 @@ function newView() {
   const d = draft('new', () => ({ t: '', m: DEFAULT_M.m, f: true, ph: set.pickHours, rh: set.rateHours, tm: set.timer || 90 }));
   return `<button class="back" data-act="go" data-v="admin">→ ניהול</button>
   <div class="display" style="font-size:48px;margin:4px 0 6px">סבב מיידי</div>
-  <p class="hint" style="margin:0 0 14px">${xm ? '🙊 משחק התירוצים. ' : ''}נפתח עכשיו, בנוסף לסבב היומי האוטומטי.</p>
+  <p class="hint" style="margin:0 0 14px">${xm ? '🎭 משחק הסיטואציות. ' : ''}נפתח עכשיו, בנוסף לסבב היומי האוטומטי.</p>
   <div class="panel">
-  <label class="f" for="topic">${xm ? 'המצב המביך' : 'הנושא'}</label>
+  <label class="f" for="topic">${xm ? 'הסיטואציה' : 'הנושא'}</label>
   <textarea id="topic" class="field" data-f="new.t" maxlength="90">${esc(d.t)}</textarea>
   ${ideaChips('new')}
   ${imgPicker('new')}${xm ? '' : metricPicker('new') + langPicker('new')}
-  <div class="two" style="margin-top:14px"><div><label class="f">${xm ? 'זמן לשליחת תירוצים' : 'זמן לבחירה'}</label><select class="field" data-f="new.ph">${hoursOpt(d.ph)}</select></div>
+  <div class="two" style="margin-top:14px"><div><label class="f">${xm ? 'זמן לשליחת משפטים' : 'זמן לבחירה'}</label><select class="field" data-f="new.ph">${hoursOpt(d.ph)}</select></div>
   <div><label class="f">זמן לדירוג</label><select class="field" data-f="new.rh">${hoursOpt(d.rh)}</select></div></div>
   ${xm ? `<label class="f">סטופר לכתיבה</label><select class="field" data-f="new.tm">${timerOpt(d.tm)}</select>` : ''}
   <button class="btn block" data-act="create" ${busy ? 'disabled' : ''}>פתח את הסבב עכשיו</button></div>`;
@@ -416,8 +416,8 @@ function suggestView() {
   const mine = S.topics.filter(t => t.by === me && inMode(t)).sort((a, b) => b.createdAt - a.createdAt);
   const st = { pending: 'ממתין לאישור', approved: 'אושר, בתור', used: 'עלה לאוויר', rejected: 'לא אושר' };
   const xm = gameMode === 'excuse';
-  return `<div class="display" style="font-size:48px;margin:4px 0 6px">הצע ${xm ? 'מצב מביך' : 'נושא'}</div>${modeSwitch()}
-  <p class="hint" style="margin:0 0 14px">${xm ? 'מצב מביך שכולם יצטרכו להמציא לו תירוץ, למשל "נתפסת שר במעלית שקופה". ' : ''}מציעים משפט או תמונה. ההצעה נשלחת למנהל, ואם תאושר היא תיכנס לתור ותעלה באחד הימים, בלי שיופיע מי הציע.</p>
+  return `<div class="display" style="font-size:48px;margin:4px 0 6px">הצע ${xm ? 'סיטואציה' : 'נושא'}</div>${modeSwitch()}
+  <p class="hint" style="margin:0 0 14px">${xm ? 'סיטואציה שכולם יצטרכו לכתוב מה היו אומרים בה, למשל "אתה נושא הספד בהלוויה". ' : ''}מציעים משפט או תמונה. ההצעה נשלחת למנהל, ואם תאושר היא תיכנס לתור ותעלה באחד הימים, בלי שיופיע מי הציע.</p>
   <div class="panel"><div class="seg" style="margin-bottom:14px"><button class="${isImg ? '' : 'on'}" data-act="sgkind" data-v="text">✏️ משפט</button><button class="${isImg ? 'on' : ''}" data-act="sgkind" data-v="img">🖼️ תמונה</button></div>
   ${isImg
     ? `${imgPicker('sg')}<label class="f" for="sgt" style="margin-top:14px">כיתוב (לא חובה)</label><input id="sgt" class="field" data-f="sg.t" maxlength="90" value="${esc(d.t)}" placeholder="למשל: שיר שמתאים לתמונה הזו">`
@@ -455,7 +455,7 @@ function adminView() {
   <button class="btn block" style="margin-top:12px" data-act="addq">הוסף לסוף התור</button></div></details>`;
   h += `<h2>הסבב היומי ${w.icon} ${w.name}</h2><div class="panel">
   <label class="f">שעת פתיחה כל יום</label><select class="field" data-f="${sk}.sh">${Array.from({ length: 24 }, (_, i) => `<option value="${i}" ${i == s.sh ? 'selected' : ''}>${hh(i)}</option>`).join('')}</select>
-  <div class="two"><div><label class="f">${xm ? 'זמן לשליחת תירוצים' : 'זמן לבחירה'}</label><select class="field" data-f="${sk}.ph">${hoursOpt(s.ph)}</select></div><div><label class="f">זמן לדירוג</label><select class="field" data-f="${sk}.rh">${hoursOpt(s.rh)}</select></div></div>
+  <div class="two"><div><label class="f">${xm ? 'זמן לשליחת משפטים' : 'זמן לבחירה'}</label><select class="field" data-f="${sk}.ph">${hoursOpt(s.ph)}</select></div><div><label class="f">זמן לדירוג</label><select class="field" data-f="${sk}.rh">${hoursOpt(s.rh)}</select></div></div>
   ${xm ? `<label class="f">סטופר לכתיבה (לכל שחקן)</label><select class="field" data-f="${sk}.tm">${timerOpt(s.tm)}</select>` : ''}
   <button class="btn block" data-act="savesettings">שמור הגדרות</button>
   <p class="hint" style="margin:10px 0 0">השינוי חל מהסבב הבא.</p></div>
@@ -463,7 +463,7 @@ function adminView() {
   const ina = inactiveSet(), pl = Object.entries(S.players).sort((a, b) => (a[1].joined || 0) - (b[1].joined || 0));
   h += `<h2>שחקנים (${pl.length - pl.filter(([u]) => ina.has(u)).length} פעילים מתוך ${pl.length})</h2>
   <p class="hint" style="margin:0 0 8px">שחקן לא פעיל לא נספר במונה "כולם נעלו". אם יבחר שיר, ישחק כרגיל. 🗑️ מוחק שחקן לגמרי, למשל זהות כפולה או שחקן בדיקה.</p>`;
-  h += pl.map(([u, p]) => `<div class="qrow">${avatarHtml(u, 'sm')}<div class="qt">${esc(p.nick)}${u === me ? ' (את/ה)' : ''}<small>${p.fullName ? esc(p.fullName) + ', ' : ''}הצטרף/ה ${p.joined ? fmtDate(p.joined) : ''}, ${S.picks.filter(x => x.uid === u && x.title).length} שירים, ${S.picks.filter(x => x.uid === u && xText(x)).length} תירוצים</small></div><button class="btn ${ina.has(u) ? 'ghost' : ''}" style="min-height:40px;padding:6px 14px;font-size:14px" data-act="toggleactive" data-v="${esc(u)}">${ina.has(u) ? 'לא פעיל' : 'פעיל'}</button>${u === me || u === S.admin ? '' : `<button class="btn ghost danger" style="min-height:40px;padding:6px 12px;font-size:14px;margin-inline-start:6px" data-act="delplayer" data-v="${esc(u)}" aria-label="מחק שחקן">🗑️</button>`}</div>`).join('');
+  h += pl.map(([u, p]) => `<div class="qrow">${avatarHtml(u, 'sm')}<div class="qt">${esc(p.nick)}${u === me ? ' (את/ה)' : ''}<small>${p.fullName ? esc(p.fullName) + ', ' : ''}הצטרף/ה ${p.joined ? fmtDate(p.joined) : ''}, ${S.picks.filter(x => x.uid === u && x.title).length} שירים, ${S.picks.filter(x => x.uid === u && xText(x)).length} משפטים</small></div><button class="btn ${ina.has(u) ? 'ghost' : ''}" style="min-height:40px;padding:6px 14px;font-size:14px" data-act="toggleactive" data-v="${esc(u)}">${ina.has(u) ? 'לא פעיל' : 'פעיל'}</button>${u === me || u === S.admin ? '' : `<button class="btn ghost danger" style="min-height:40px;padding:6px 12px;font-size:14px;margin-inline-start:6px" data-act="delplayer" data-v="${esc(u)}" aria-label="מחק שחקן">🗑️</button>`}</div>`).join('');
   return h;
 }
 function steps(ph) {
@@ -579,13 +579,13 @@ function profileView(uid) {
     ${stat('⭐', 'נקודות בסך הכל', ag.total)}
     ${xm ? '' : stat('🎯', 'ממוצע התאמה (מתוך 10)', ag.fitN ? (ag.fitSum / ag.fitN).toFixed(1) : '–')}
     ${stat('😂', 'ממוצע מצחיק (מתוך 10)', ag.funN ? (ag.funSum / ag.funN).toFixed(1) : '–')}
-    ${stat(xm ? '🙊' : '🎵', xm ? 'תירוצים שנשלחו' : 'שירים שנבחרו', songs.length)}
+    ${stat(xm ? '🎭' : '🎵', xm ? 'משפטים שנשלחו' : 'שירים שנבחרו', songs.length)}
     ${stat('🔥', 'סבבים ברצף', streak(uid))}
     ${stat('🔮', 'ניחושים נכונים', ag.gMade ? ag.bonus + '/' + ag.gMade : '–')}
     ${stat('🎰', 'הימורים נכונים', ag.betMade ? ag.bet + '/' + ag.betMade : '–')}
     ${stat('🕵️', 'ניחשו אותו/ה', ag.gOnTot ? Math.round(100 * ag.gOnRight / ag.gOnTot) + '%' : '–')}
   </div>`;
-  if (recent.length) h += `<h2>${xm ? 'תירוצים אחרונים' : 'בחירות אחרונות'}</h2>` + recent.map(({ p, r }) => {
+  if (recent.length) h += `<h2>${xm ? 'משפטים אחרונים' : 'בחירות אחרונות'}</h2>` + recent.map(({ p, r }) => {
     const done = phase(r) === 'done'; const row = done ? roundData(r).rows.find(x => x.uid === uid) : null;
     const show = done || uid === me;
     return `<div class="qrow"><div class="qt">${show ? esc(p.title || xClip(p.text, 90)) : '🔒 ייחשף בסוף הסבב'}<small>${esc(r.topic)}</small></div>${row ? `<b>${row.pts}</b>` : ''}</div>`;
@@ -634,7 +634,7 @@ function startReveal(r) {
       const place = rows.indexOf(x) + 1, win = x.pts > 0 && x.pts === top;
       const card = document.createElement('div');
       card.className = 'rv-card' + (win ? ' win' : '');
-      card.innerHTML = `<div class="rv-medal">${medal(place)}</div>${isX(r) ? '<span class="xrv">🙊</span>' : artHtml(x, 'rv')}
+      card.innerHTML = `<div class="rv-medal">${medal(place)}</div>${isX(r) ? '<span class="xrv">🎭</span>' : artHtml(x, 'rv')}
         <div class="rv-info"><div class="rv-place">מקום ${place}</div><div class="t">${esc(isX(r) ? xClip(x.text, 140) : x.title)}</div><div class="a">${isX(r) ? '' : esc(x.artist || '')}</div><div class="rv-who">${withAv(x.uid, 'xs')}${x.uid === me ? ' (את/ה)' : ''}</div></div>
         <div class="rv-pts">${x.pts}<small>נק׳</small></div>`;
       stage.prepend(card);
@@ -682,7 +682,7 @@ function startWeekly(s) {
   el.innerHTML = `<div class="rv-in" role="dialog" aria-label="סיכום שבועי">
     <div class="rv-top"><span class="rv-label">סיכום שבועי</span><button class="rv-skip" data-rv="skip">סגור ✕</button></div>
     <div class="display rv-topic" style="margin-bottom:6px">השבוע שהיה</div>
-    <p class="wk-range">${gameMode === 'excuse' ? '🙊 תירוצים · ' : ''}${weekLabel(s)} · ${s.rounds} סבבים · ${s.songs} ${W().items}</p>
+    <p class="wk-range">${gameMode === 'excuse' ? '🎭 סיטואציות · ' : ''}${weekLabel(s)} · ${s.rounds} סבבים · ${s.songs} ${W().items}</p>
     <div class="rv-stage" aria-live="polite"></div><div class="wk-extra"></div>
     <div class="wk-end" hidden><button class="btn block" data-rv="wkshare">📣 שתף את הסיכום בוואטסאפ</button><button class="btn ghost block" data-rv="skip" style="margin-top:8px">סגור</button></div></div>`;
   el.hidden = false; document.body.classList.add('rv-open');
@@ -701,11 +701,11 @@ function startWeekly(s) {
   }));
   const songCardEl = (label, x, cls) => { const c = document.createElement('div'); c.className = 'rv-card wk-song ' + (cls || '');
     const xx = gameMode === 'excuse';
-    c.innerHTML = `<div class="rv-medal">${label[0]}</div>${xx ? '<span class="xrv">🙊</span>' : artHtml(x, 'rv')}<div class="rv-info"><div class="rv-place">${label[1]}</div><div class="t">${esc(xx ? xClip(x.text, 140) : x.title)}</div><div class="a">${xx ? '' : esc(x.artist || '')}</div><div class="rv-who">${withAv(x.uid, 'xs')}</div><div class="a">${esc(x.topic)}</div></div><div class="rv-pts">${x.pts}<small>נק׳</small></div>`;
+    c.innerHTML = `<div class="rv-medal">${label[0]}</div>${xx ? '<span class="xrv">🎭</span>' : artHtml(x, 'rv')}<div class="rv-info"><div class="rv-place">${label[1]}</div><div class="t">${esc(xx ? xClip(x.text, 140) : x.title)}</div><div class="a">${xx ? '' : esc(x.artist || '')}</div><div class="rv-who">${withAv(x.uid, 'xs')}</div><div class="a">${esc(x.topic)}</div></div><div class="rv-pts">${x.pts}<small>נק׳</small></div>`;
     return c };
   const xw = gameMode === 'excuse';
-  if (s.best) later(() => { extra.appendChild(songCardEl(xw ? ['🤥', 'התירוץ של השבוע'] : ['🎵', 'השיר של השבוע'], s.best)); if (!xw) playRevealSong(s.best, revealTimers) });
-  if (s.flop) later(() => extra.appendChild(songCardEl(xw ? ['💀', 'התירוץ הכי שקוף'] : ['💀', 'Flop of the Week'], s.flop)));
+  if (s.best) later(() => { extra.appendChild(songCardEl(xw ? ['🎤', 'המשפט של השבוע'] : ['🎵', 'השיר של השבוע'], s.best)); if (!xw) playRevealSong(s.best, revealTimers) });
+  if (s.flop) later(() => extra.appendChild(songCardEl(xw ? ['💀', 'נפל על הפנים'] : ['💀', 'Flop of the Week'], s.flop)));
   const lines = [];
   if (s.guesser) lines.push(`🔮 הכי הרבה ניחושים נכונים: <b>${s.guesser.u.map(u => esc(nameOf(u))).join(', ')}</b> (${s.guesser.n})`);
   if (s.bettor) lines.push(`🎰 הכי הרבה הימורים נכונים: <b>${s.bettor.u.map(u => esc(nameOf(u))).join(', ')}</b> (${s.bettor.n})`);

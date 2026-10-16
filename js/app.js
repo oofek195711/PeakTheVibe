@@ -10,7 +10,7 @@ function onField(e) {
 app.addEventListener('input', e => { onField(e); const ds = e.target.dataset || {}; if (ds.search) liveSearch(ds.search); if (ds.xtext) xAutosave(ds.xtext) });
 app.addEventListener('change', onField);
 const maxOrder = () => S.topics.reduce((m, t) => Math.max(m, t.order || 0), 0);
-const IMG_TOPIC = 'שיר לתמונה 🖼️', IMG_XTOPIC = 'מה התירוץ? 🖼️';
+const IMG_TOPIC = 'שיר לתמונה 🖼️', IMG_XTOPIC = 'מה אתה אומר? 🖼️';
 const hasImg = k => !!(D[k] && (D[k].imgData || D[k].img));
 /* Uploads a newly chosen topic picture (if any) and returns the picture's id, or '' when the topic has none. */
 async function saveTopicImg(k) {
@@ -206,7 +206,7 @@ app.addEventListener('click', async e => {
   }
   else if (a === 'xsend') {
     const r = S.rounds.find(x => x.id === view.v); if (!r) return;
-    if (!String((D['xt:' + r.id] || {}).t || '').trim()) { toast('כתבו תירוץ קודם'); return }
+    if (!String((D['xt:' + r.id] || {}).t || '').trim()) { toast('כתבו משפט קודם'); return }
     await xFinish(r, false);
   }
   else if (a === 'htab') { homeTab = v; render() }

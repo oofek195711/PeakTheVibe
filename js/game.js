@@ -98,9 +98,9 @@ function titles() {
   const done = doneRounds(), ws = weekStart();
   const A = Object.values(aggregate(done).P), wk = aggregate(done.filter(r => r.rateEnds >= ws)), W = Object.values(wk.P);
   if (gameMode === 'excuse') return [
-    { ic: '👑', n: 'אלוף התירוצים', d: 'מקום ראשון השבוע', u: maxBy(W, t => t.total, t => t.total > 0) },
-    { ic: '💀', n: 'התירוץ הכי שקוף', d: wk.flop ? 'הכי מעט נקודות השבוע' : 'התירוץ עם הכי מעט נקודות השבוע', u: wk.flop ? [wk.flop.uid] : [] },
-    { ic: '🤥', n: 'עורך הדין', d: 'הכי הרבה ניצחונות בכל הזמנים', u: maxBy(A, t => t.wins, t => t.wins > 0) },
+    { ic: '👑', n: 'מלך הסיטואציות', d: 'מקום ראשון השבוע', u: maxBy(W, t => t.total, t => t.total > 0) },
+    { ic: '💀', n: 'נפל על הפנים', d: wk.flop ? 'הכי מעט נקודות השבוע' : 'המשפט עם הכי מעט נקודות השבוע', u: wk.flop ? [wk.flop.uid] : [] },
+    { ic: '🎤', n: 'הסטנדאפיסט', d: 'הכי הרבה ניצחונות בכל הזמנים', u: maxBy(A, t => t.wins, t => t.wins > 0) },
     { ic: '😂', n: 'הקומיקאי', d: 'ממוצע "כמה זה מצחיק" הכי גבוה', u: maxBy(A, t => t.funSum / t.funN, t => t.funN > 0) },
     { ic: '🕵️', n: 'Unpredictable', d: 'הכי קשה לנחש מה הוא כתב', u: maxBy(A, t => 1 - t.gOnRight / t.gOnTot, t => t.gOnTot >= 3) },
     { ic: '🔮', n: 'Mind Reader', d: 'הכי הרבה ניחושים נכונים', u: maxBy(A, t => t.bonus, t => t.bonus > 0) }
@@ -137,7 +137,7 @@ function roundStatus(r) {
       ? u => { const p = picks.find(x => x.uid === u); if (p) return xDone(p, r) ? 'locked' : xExpired(p, r) ? 'seen' : 'draft'; return seen(u) ? 'seen' : 'none' }
       : u => { const p = picks.find(x => x.uid === u); if (p) return p.locked ? 'locked' : 'draft'; return seen(u) ? 'seen' : 'none' };
     const ids = [...new Set([...act, ...picks.map(p => p.uid)])];
-    const labels = xr ? [['locked', '🔒', 'שלחו תירוץ'], ['draft', '⏱️', 'כותבים עכשיו'], ['seen', '👀', 'נכנסו ועוד לא כתבו'], ['none', '💤', 'עוד לא נכנסו']]
+    const labels = xr ? [['locked', '🔒', 'שלחו משפט'], ['draft', '⏱️', 'כותבים עכשיו'], ['seen', '👀', 'נכנסו ועוד לא כתבו'], ['none', '💤', 'עוד לא נכנסו']]
       : [['locked', '🔒', 'נעלו'], ['draft', '✏️', 'בטיוטה'], ['seen', '👀', 'נכנסו ועוד לא בחרו'], ['none', '💤', 'עוד לא נכנסו']];
     const groups = labels.map(([k, ic, l]) => ({ ic, l, u: ids.filter(u => st(u) === k) }));
     const n = act.filter(u => st(u) === 'locked').length;
@@ -208,8 +208,8 @@ function reminderText(r) {
     ? t.groups.filter(g => g.ic === '👀' || g.ic === '💤').flatMap(g => g.u)
     : [...t.pickers].filter(u => !ratedAll(u));
   const hide = xr && ph === 'pick'; // the excuse situation stays secret until each player starts
-  const lines = [xr ? '🙊 *PeakTheVibe: משחק התירוצים*' : '🎧 *PeakTheVibe*', '', '*' + (hide ? 'מצב מביך חדש מחכה לכם' : r.topic) + '*', ...(r.img && !hide ? ['🖼️ הנושא הפעם הוא תמונה, נכנסים לראות'] : []),
-    ph === 'pick' ? (xr ? `⏰ נשארו ${left} לכתוב תירוץ! (${timerOf(r)} שניות מהרגע שמתחילים)` : `⏰ נשארו ${left} לבחור שיר!`) : `⭐ נשארו ${left} לדרג את ה${w.items}!`];
+  const lines = [xr ? '🎭 *PeakTheVibe: משחק הסיטואציות*' : '🎧 *PeakTheVibe*', '', '*' + (hide ? 'סיטואציה חדשה מחכה לכם' : r.topic) + '*', ...(r.img && !hide ? ['🖼️ הנושא הפעם הוא תמונה, נכנסים לראות'] : []),
+    ph === 'pick' ? (xr ? `⏰ נשארו ${left} לכתוב משפט! (${timerOf(r)} שניות מהרגע שמתחילים)` : `⏰ נשארו ${left} לבחור שיר!`) : `⭐ נשארו ${left} לדרג את ה${w.items}!`];
   if (miss.length) lines.push('', (ph === 'pick' ? (xr ? 'עוד לא כתבו: ' : 'עוד לא בחרו שיר: ') : `עוד לא דירגו את כל ה${w.items}: `) + miss.map(nameOf).join(', '));
   if (ph === 'rate') lines.push('', `זוכרים: מי ששלח ${w.item} ולא דירג את כולם מקבל 0 🙃`);
   lines.push('', '👇 ' + GAME_URL);
@@ -238,10 +238,10 @@ const weekLabel = s => dm(s.from) + ' עד ' + dm(s.to - 864e5 / 2);
 function weeklyText(s) {
   const medals = ['🥇', '🥈', '🥉'];
   const w = W(), xr = gameMode === 'excuse';
-  const L = [(xr ? '🙊 *PeakTheVibe: סיכום שבוע התירוצים*' : '🎧 *PeakTheVibe: סיכום השבוע*'), weekLabel(s) + ', ' + s.rounds + ' סבבים, ' + s.songs + ' ' + w.items, ''];
+  const L = [(xr ? '🎭 *PeakTheVibe: סיכום שבוע הסיטואציות*' : '🎧 *PeakTheVibe: סיכום השבוע*'), weekLabel(s) + ', ' + s.rounds + ' סבבים, ' + s.songs + ' ' + w.items, ''];
   s.rows.slice(0, 3).forEach((t, i) => L.push(`${medals[i]} ${nameOf(t.uid)}: ${t.total} נק׳`));
-  if (s.best) L.push('', xr ? `🤥 התירוץ של השבוע: "${s.best.text}" (${nameOf(s.best.uid)}, ${s.best.pts} נק׳)` : `🎵 השיר של השבוע: ${s.best.title}${s.best.artist ? ' / ' + s.best.artist : ''} (${nameOf(s.best.uid)}, ${s.best.pts} נק׳)`);
-  if (s.flop) L.push(xr ? `💀 התירוץ הכי שקוף: "${s.flop.text}" (${nameOf(s.flop.uid)}, ${s.flop.pts} נק׳)` : `💀 Flop: ${s.flop.title} (${nameOf(s.flop.uid)}, ${s.flop.pts} נק׳)`);
+  if (s.best) L.push('', xr ? `🎤 המשפט של השבוע: "${s.best.text}" (${nameOf(s.best.uid)}, ${s.best.pts} נק׳)` : `🎵 השיר של השבוע: ${s.best.title}${s.best.artist ? ' / ' + s.best.artist : ''} (${nameOf(s.best.uid)}, ${s.best.pts} נק׳)`);
+  if (s.flop) L.push(xr ? `💀 נפל על הפנים: "${s.flop.text}" (${nameOf(s.flop.uid)}, ${s.flop.pts} נק׳)` : `💀 Flop: ${s.flop.title} (${nameOf(s.flop.uid)}, ${s.flop.pts} נק׳)`);
   if (s.guesser) L.push(`🔮 הכי הרבה ניחושים נכונים: ${s.guesser.u.map(nameOf).join(', ')} (${s.guesser.n})`);
   L.push('', '👇 ' + GAME_URL);
   return L.join('\n');
