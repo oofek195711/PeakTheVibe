@@ -9,9 +9,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta property="og:title" content="PeakTheVibe">
 <meta property="og:site_name" content="PeakTheVibe">
-<meta property="og:description" content="כל יום נושא חדש. בוחרים שיר, מדרגים, ומי שבחר הכי טוב לוקח.">
+<meta property="og:description" content="PeakTheVibe נסגר לצמיתות. תודה לכל מי ששיחק ❤️">
 <meta property="og:type" content="website">
-<meta name="description" content="כל יום נושא חדש. בוחרים שיר, מדרגים, ומי שבחר הכי טוב לוקח.">
+<meta name="description" content="PeakTheVibe נסגר לצמיתות. תודה לכל מי ששיחק ❤️">
 <meta name="apple-mobile-web-app-title" content="PeakTheVibe">
 <meta name="application-name" content="PeakTheVibe">
 <meta property="og:url" content="https://oofek195711.github.io/PeakTheVibe/">
@@ -23,27 +23,37 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>PeakTheVibe</title>
+<title>PeakTheVibe · נסגר</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Karantina:wght@400;700&family=Assistant:wght@400;600;800&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<link rel="stylesheet" href="css/style.css?v=25">
-
+<link href="https://fonts.googleapis.com/css2?family=Karantina:wght@700&family=Assistant:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#17122A;--ink:#F2EDFF;--muted:#A99FCB;--pink:#FF6B98;--card:#231B3B}
+*{box-sizing:border-box}
+html,body{margin:0;overflow-x:hidden;min-height:100%;background:var(--bg);color:var(--ink)}
+body{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:32px 16px calc(32px + env(safe-area-inset-bottom));font-family:"Assistant",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;text-align:center;
+  background:radial-gradient(120% 70% at 50% 0%,#3A2560 0%,var(--bg) 60%) fixed}
+main{width:100%;max-width:420px}
+.logo{width:112px;height:112px;border-radius:28px;display:block;margin:0 auto 22px;filter:grayscale(.35);box-shadow:0 14px 40px rgba(0,0,0,.45);transform:rotate(-4deg)}
+.stamp{display:inline-block;font-family:"Karantina",system-ui,sans-serif;font-weight:700;font-size:clamp(36px,11.5vw,78px);white-space:nowrap;line-height:.95;color:var(--pink);
+  border:5px solid var(--pink);border-radius:18px;padding:10px 18px 2px;transform:rotate(-3deg);margin:0 0 30px;
+  animation:stamp .6s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes stamp{from{opacity:0;transform:rotate(-3deg) scale(1.8)}to{opacity:1;transform:rotate(-3deg) scale(1)}}
+.thanks{background:var(--card);border-radius:22px;padding:22px 20px;font-size:20px;line-height:1.5;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.3);animation:up .5s .45s ease-out both}
+.thanks b{color:#fff;font-weight:800}
+.heart{display:inline-block;animation:beat 1.4s 1s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1)}15%{transform:scale(1.3)}30%{transform:scale(1)}45%{transform:scale(1.2)}}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+footer{margin-top:34px;color:var(--muted);font-size:13px;animation:up .5s .7s ease-out both}
+@media (prefers-reduced-motion:reduce){.stamp,.thanks,footer,.heart{animation:none}}
+</style>
 </head>
 <body>
-<div id="app"><div class="boot" id="boot" role="status" aria-live="polite"><img class="boot-logo" src="PeakTheVibeLogo.png" alt=""><div class="boot-title">PeakTheVibe</div><div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="boot-bar"><span style="width:6%"></span></div><p class="boot-step">טוען את המשחק…</p><div class="boot-slow" hidden><p>זה לוקח יותר זמן מהרגיל. בדקו שיש חיבור לאינטרנט.</p><button class="btn" onclick="location.reload()">נסו שוב</button></div></div></div>
-<div id="toast" class="toast" hidden></div>
-<div id="reveal" class="reveal" hidden></div>
-<div id="news" class="news" hidden></div>
-<script src="js/core.js?v=25"></script>
-<script src="js/game.js?v=25"></script>
-<script src="js/music.js?v=25"></script>
-<script src="js/firebase.js?v=25"></script>
-<script src="js/ui.js?v=25"></script>
-<script src="js/excuse.js?v=25"></script>
-<script src="js/app.js?v=25"></script>
+<main>
+  <img class="logo" src="PeakTheVibeLogo.png" alt="PeakTheVibe">
+  <h1 class="stamp">סגור לצמיתות!</h1>
+  <p class="thanks">תודה ל<b>עומר שמואלי</b>, היחיד שהחזיק במשחק מעל יומיים <span class="heart">❤️</span></p>
+  <footer>© 2026 PeakTheVibe. כל הזכויות שמורות לאופק טלקר.<br>גרסה 1.5.3</footer>
+</main>
 </body>
 </html>
